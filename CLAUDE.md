@@ -23,6 +23,8 @@ non-trivial, interview me. Cover:
 - What data does this handle? Is any of it PII, financial, or health data?
 - Who is the target audience geographically? (determines which privacy
   regulations apply — GDPR, CCPA, HIPAA, etc.)
+- Do you have existing design assets? (Figma file with design system,
+  brand guidelines, reference sites, or starting from scratch?)
 
 After the interview, proceed to **Project Setup** to generate project
 files from templates before writing any code.
@@ -206,9 +208,14 @@ When starting a new project, after the zero-assumptions interview:
    to Rocky for approval before any implementation begins. Skip for:
    bug fixes, config changes, one-off scripts, single-page landing
    pages, small CLI tools.
-4. **Generate DESIGN.md** (if the project has user-facing UI) from
-   `~/.claude/templates/design.md`. Mark generated values with `[VERIFY]`.
-   Present to Rocky for review and editing before any UI work begins.
+4. **Generate DESIGN.md** (if the project has user-facing UI).
+   - **Figma-first:** if Rocky has a Figma file with design tokens, extract
+     values via Figma MCP (`get_variable_defs`) and populate DESIGN.md
+     from the template with real values. Figma Variables are the source
+     of truth — not AI-generated placeholders.
+   - **No Figma:** generate from `~/.claude/templates/design.md` using
+     `ui-ux-pro-max` for style data, mark values with `[VERIFY]`.
+   - Either way, present to Rocky for review before any UI work begins.
 5. **Create STATUS.md and PLAN.md** per the Project State Files section.
 6. **Verify `.gitignore`** covers `.env*`, `node_modules/`, build output,
    OS files, IDE files, and `.claude/logs/`.
