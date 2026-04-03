@@ -12,7 +12,7 @@ CASL). Additionally for static/marketing sites:
 ## Content & Claims
 
 - **Never generate testimonials, case studies, or client logos** without
-  Rocky's verification that permission has been granted.
+  the project lead's verification that permission has been granted.
 - **Never generate specific performance claims** ("increased revenue by
   X%," "Y% faster") without verified data backing them.
 - **Copyright on all assets.** Verify that stock photos, fonts, icons,

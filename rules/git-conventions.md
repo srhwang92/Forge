@@ -79,4 +79,4 @@ force-push.
   STATUS.md and logs are updated
 - **Never have both tools editing the same file simultaneously**
 - **Conflict resolution:** If Claude Code and Cursor have diverged,
-  Rocky resolves conflicts in Cursor before resuming Claude Code work
+  the project lead resolves conflicts in Cursor before resuming Claude Code work

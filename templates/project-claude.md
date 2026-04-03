@@ -4,8 +4,8 @@
 
 **Type:** [website | webapp | mobile app | Shopify store | dashboard |
 internal tool | API/backend | automation | ML/AI | agent | CLI tool]
-**Client:** [client name or "Nura (internal)"]
-**Project Lead:** [Rocky, unless another lead is specified]
+**Client:** [client name or "internal"]
+**Project Lead:** [the project lead, unless another lead is specified]
 **Has DESIGN.md:** [yes | no — auto-populated during project setup]
 
 ---
@@ -84,8 +84,17 @@ use kebab-case liquid filenames"]
 
 ## Workflow Overrides
 
-[Remove if using global Superpowers workflow. Examples: "Skip Layer 3",
-"Use feature-dev instead of Superpowers", "Small codebase — no subagents"]
+**Ceremony level:** [full | standard | light | minimal]
+<!-- Presets — pick one, customize if needed:
+  full     — All layers on every task, Layer 3 per-feature, Playwright, all gates (high-stakes client/regulated)
+  standard — All layers on non-trivial tasks, Layer 3 pre-merge, Playwright on UI, all gates (default)
+  light    — Layer 1 only, security/destructive gates only, skip Playwright (personal projects, prototypes)
+  minimal  — Run tests only, no approval gates except destructive and security ops (one-off scripts, experiments)
+-->
+
+[Additional overrides beyond ceremony level, if any. Examples:
+"Skip Layer 3", "Use feature-dev instead of Superpowers",
+"Small codebase — no subagents"]
 
 ## Applied Guardrail Templates
 

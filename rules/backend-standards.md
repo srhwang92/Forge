@@ -169,7 +169,7 @@ things go wrong.
   runs in 200ms on 100 rows might lock the table for 10 minutes on
   1 million rows.
 - **Every migration must be reversible** or explicitly documented as
-  irreversible with Rocky's approval.
+  irreversible with the project lead's approval.
 
 ### Data Retention & Soft Delete
 - **Never hard-delete user data or business records.** Use soft delete
@@ -197,7 +197,7 @@ things go wrong.
 
 - **Never build custom auth.** Use established libraries/services
   (Supabase Auth, NextAuth, Auth.js, Clerk). Flag any auth changes for
-  Rocky's review.
+  the project lead's review.
 - **Verify ownership on every resource access.** The #1 API vulnerability
   (BOLA/IDOR): a user changes an ID in the request and accesses another
   user's data. Every endpoint that returns or modifies a resource must
@@ -208,6 +208,11 @@ things go wrong.
   checking revocation status for sensitive operations.
 - **Principle of least privilege.** Give each client/role only the
   permissions it needs. Default-deny.
+- **Admin/elevated endpoints must explicitly verify role.** AI creates
+  admin routes that check authentication but skip role verification.
+  Every endpoint that performs admin operations must check
+  `user.role === 'admin'` (or equivalent) — not just `user !== null`.
+  Test by calling admin endpoints with a regular user token.
 
 ---
 
@@ -449,4 +454,17 @@ Never do any of the following:
 - Process large datasets one row at a time — use batch operations
 - Skip database constraints and rely solely on app-level validation
 - Create API routes in Next.js for mutations your own frontend calls
-  — use server actions
+  — use server actions. **But treat server actions as public endpoints.**
+  They are callable by anyone with the action ID — not private just
+  because they're co-located with the component. Every server action
+  must validate auth, check permissions, and validate input with the
+  same rigor as an API route.
+- **Sequential awaits for independent operations** — if two async calls
+  don't depend on each other's result, use `Promise.all` (JS) or
+  `asyncio.gather` (Python). AI code is 8x more likely to make
+  independent calls sequential. Look for consecutive `await` lines
+  where the second doesn't use the first's result.
+- **Deserialize untrusted data without schema validation** — never
+  `JSON.parse(input) as MyType`. Always validate through zod/valibot
+  before trusting shape. Never use `eval`, `pickle.loads`, or
+  `deserialize` on data from clients or external sources.

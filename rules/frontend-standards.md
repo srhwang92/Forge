@@ -113,6 +113,13 @@ Never mix strategies within the same component. Never use inline
 
 - `clamp()` over rigid breakpoints for typography and spacing:
   `--font-body: clamp(1rem, 0.5rem + 2vw, 1.25rem);`
+- **Never use `px` for font sizes.** Use `rem` (or token-backed `clamp`)
+  so text scales with browser zoom and user font preferences. AI
+  defaults to px — users who increase browser font size see no change,
+  which is an accessibility failure.
+- **One icon library per project.** If DESIGN.md specifies Lucide, use
+  Lucide everywhere. AI mixes Lucide, Heroicons, and Font Awesome in
+  the same project — it looks inconsistent and inflates the bundle.
 - Container queries (`@container`) for components in multiple layout
   contexts (sidebars, modals, main content)
 - Media queries only for true viewport-level layout shifts
@@ -165,7 +172,7 @@ component from the start — never retrofitted.
 ## Frontend Security
 
 - Never use `innerHTML` or `dangerouslySetInnerHTML` without explicit
-  sanitization (DOMPurify). Flag for Rocky's review.
+  sanitization (DOMPurify). Flag for the project lead's review.
 - Sanitize all user-generated content before rendering — even in
   attributes, URLs, and CSS values
 - Never construct URLs from user input without validation
@@ -245,7 +252,11 @@ Targets: **INP ≤200ms** (p75), **LCP ≤2.5s**, **CLS ≤0.1**
 ## Component Architecture
 
 - **Headless UI** (Radix, React Aria) for accessible primitives — never
-  custom-reimplement dropdowns, modals, focus traps, keyboard nav
+  custom-reimplement dropdowns, modals, focus traps, keyboard nav.
+  **Non-React environments (Shopify Liquid, vanilla JS, Astro):** when
+  headless libraries aren't available, implement following WAI-ARIA
+  Authoring Practices. Verify keyboard navigation, focus trapping,
+  escape-to-close, and screen reader announcements manually.
 - **Compound components:** `<Card.Header>`, `<Card.Body>`, `<Card.Footer>`
   — not massive prop objects
 - **Strict APIs:** predefined variants (`variant="destructive"`), no
@@ -273,9 +284,12 @@ Every data-dependent boundary handles four states:
 - **Empty:** a purposeful empty state with illustration or message and a
   clear CTA ("No results found — try adjusting your filters"). Never
   render nothing.
-- **Error:** error boundaries at every route segment (`error.tsx`).
-  Friendly message with retry action — never raw error strings.
-  Client-side errors reported to Sentry or equivalent.
+- **Error:** nested error boundaries — not one at root level. AI puts a
+  single boundary at the app root so one crashing widget kills the page.
+  Use route-level (`error.tsx`) for page crashes plus feature-level
+  boundaries so a broken chart widget shows a fallback without taking
+  down the dashboard. Friendly message with retry action — never raw
+  error strings. Client-side errors reported to Sentry or equivalent.
   Non-critical failures degrade gracefully — don't take down the page.
 
 ### Data Fetching
@@ -299,6 +313,14 @@ Every data-dependent boundary handles four states:
   compute B inline or with `useMemo` — not with a `useEffect` that
   watches A and calls `setB`. This causes extra renders and race
   conditions.
+- **Never fire API calls from `useEffect` without stable dependencies.**
+  Object/array literals and unstable function references in the
+  dependency array cause infinite request loops. Use TanStack Query or
+  stable references. If you see the same request firing repeatedly in
+  the network tab, the dependency array is wrong.
+- **Every `useEffect` with a subscription, timer, or listener must
+  return a cleanup function.** Missing cleanup causes memory leaks
+  and stale callback bugs that only surface after navigation.
 - **URL state** for anything shareable or bookmarkable: filters,
   pagination, active tabs, search queries. Use `useSearchParams` or
   equivalent — never `useState` for URL-worthy state.
@@ -341,6 +363,11 @@ Every data-dependent boundary handles four states:
 - Server-render content pages — no client-only rendering for indexable
   content
 - Open Graph + Twitter Card meta on shareable pages
+- **Verify all meta tags are project-specific.** AI copies site names,
+  OG titles, descriptions, and social images from templates or previous
+  projects without updating them. Before deploy, audit every page's
+  `<title>`, `meta description`, `og:title`, `og:image`, and
+  `og:description` for accuracy.
 - Canonical URLs to prevent duplicate content
 - Generate `sitemap.xml` and `robots.txt` for every public-facing project
 - Favicon set (at minimum: `favicon.ico`, `apple-touch-icon.png`,
@@ -409,3 +436,8 @@ Even for English-only projects, never create i18n debt:
 - CSS overrides and standalone `.liquid` files only
 - Reference `DESIGN.md` tokens via CSS custom properties in theme CSS
 - Schema settings: clear labels, default values, info text
+- **Testing via Playwright MCP.** Run against `shopify theme dev` preview:
+  axe-core accessibility audit on every page template, screenshot
+  comparison across breakpoints (mobile, tablet, desktop), verify no
+  console errors, and test critical flows (add to cart, newsletter
+  signup, navigation between brand worlds)

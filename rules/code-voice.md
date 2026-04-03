@@ -101,10 +101,10 @@ Elite devs ship. They make deliberate trade-offs and document them.
 - **Good enough is sometimes the right answer.** If a perfect abstraction
   takes 2 hours but a simple solution takes 10 minutes and the code
   will likely be rewritten when requirements clarify — ship the simple
-  version. Leave a `// TODO(rocky): Revisit when X is clearer` if
+  version. Leave a `// TODO: Revisit when X is clearer` if
   appropriate.
 - **Not every edge case needs handling on day one.** If a feature is
-  behind a feature flag and only Rocky is using it, a basic error
+  behind a feature flag and only the team is using it, a basic error
   message is fine. The production error boundary will catch the rest.
   Don't gold-plate internal-only paths.
 - **Tactical debt is acceptable when documented.** A `// HACK:` comment
@@ -218,7 +218,12 @@ These are AI's strengths. Never sacrifice them for "human voice":
 - **Security by default.** Input validation, parameterized queries,
   output encoding, auth checks. Never skip for speed.
 - **Tests exist.** Every feature has tests. Coverage may vary by
-  criticality, but zero-test features don't ship.
+  criticality, but zero-test features don't ship. **For environments
+  without traditional test runners** (Shopify themes, static HTML):
+  use Playwright MCP against the dev preview for automated accessibility
+  audits (axe-core), visual regression screenshots across breakpoints,
+  performance metrics, console error detection, and critical flow
+  verification. Playwright IS the test runner for these projects.
 - **Error boundaries and loading states.** Every async boundary handles
   all four states. Humans forget empty states; we don't.
 - **Consistent token usage.** Every color, spacing, font references the

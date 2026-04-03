@@ -3,7 +3,7 @@
 > Captures the system design as a whole. PLAN.md tracks tasks. Project
 > CLAUDE.md tracks stack. This file tracks architecture, data model,
 > and design decisions. Updated only when the system design changes
-> (requires Rocky's approval).
+> (requires the project lead's approval).
 
 ---
 
@@ -64,8 +64,11 @@
 
 ## Decisions Log
 
-[Append-only. Key architectural decisions with 1-line rationale]
-| Date | Decision | Rationale |
-|------|----------|-----------|
-| [date] | [e.g., Supabase over Firebase] | [e.g., PostgreSQL + RLS + Edge Functions in one platform] |
-| [date] | [e.g., Server Actions over API routes] | [e.g., Type-safe mutations, no manual fetch/error handling] |
+## Decisions Log
+
+See `DECISIONS.md` for full architectural decisions organized by domain.
+
+| Date | Decision | Domain |
+|------|----------|--------|
+| [date] | [e.g., Supabase over Firebase] | Architecture |
+| [date] | [e.g., Server Actions over API routes] | API |

@@ -32,7 +32,7 @@ Global guardrails cover the basics. For ML projects, additionally:
 - **Human-in-the-loop for high-stakes decisions.** Any AI decision that
   significantly affects a user (credit, employment, housing, insurance,
   healthcare) must have human review capability. Fully autonomous
-  high-stakes decisions require Rocky's explicit approval.
+  high-stakes decisions require the project lead's explicit approval.
 
 ## AI Agent Safety
 

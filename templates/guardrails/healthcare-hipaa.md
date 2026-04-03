@@ -7,7 +7,7 @@ See global Privacy & Regulatory Awareness for baseline (PIPEDA, PIPA BC,
 CASL). Additionally for healthcare:
 - HIPAA (if handling PHI of US persons)
 - Provincial health privacy legislation (varies by province — PIPA BC
-  for Rocky's jurisdiction, PHIPA for Ontario clients, etc.)
+  for the project lead's jurisdiction, PHIPA for Ontario clients, etc.)
 - GDPR if serving EU patients/users
 - FDA regulations if the software qualifies as a medical device (SaMD)
 
@@ -28,7 +28,7 @@ any other unique identifier combined with health information.
   IndexedDB) unless encrypted and explicitly approved.
 - **Never send PHI to third-party services** without a Business
   Associate Agreement (BAA) in place. This includes error tracking
-  (Sentry), analytics, AI APIs, and logging services. Flag for Rocky's
+  (Sentry), analytics, AI APIs, and logging services. Flag for the project lead's
   review.
 - **Minimum necessary standard.** Only access, use, or display the
   minimum PHI necessary for the specific task. Never fetch entire
@@ -50,7 +50,7 @@ any other unique identifier combined with health information.
 
 - Any potential PHI exposure is **Escalation Level 3 — alert
   immediately.** HIPAA requires notification within 60 days of
-  discovery. Do not attempt to assess or minimize — report to Rocky
+  discovery. Do not attempt to assess or minimize — report to the project lead
   instantly.
 - Document: what data was potentially exposed, how many records, what
   the exposure vector was, and when it was discovered.

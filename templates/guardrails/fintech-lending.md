@@ -14,7 +14,7 @@ CASL). Additionally for fintech/lending:
 
 ## Financial Calculation Safety
 
-- **Never implement financial calculations without Rocky's explicit
+- **Never implement financial calculations without the project lead's explicit
   approval.** This includes: interest rates, APR, amortization, payment
   amounts, fees, penalties, credit scoring, loan eligibility,
   debt-to-income ratios, and any formula affecting what a user pays

@@ -26,7 +26,7 @@ CASL). Additionally for ecommerce:
 - **Never hardcode prices, discounts, or tax rates.** These must come
   from Shopify's admin, metafields, or configuration.
 - Product descriptions must be accurate. Never generate claims about
-  product efficacy, origin, or composition without Rocky's verification.
+  product efficacy, origin, or composition without the project lead's verification.
 - Never generate fake reviews, ratings, or social proof.
 - Sale/discount copy must accurately reflect the actual price reduction.
 
