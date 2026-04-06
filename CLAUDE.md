@@ -151,10 +151,25 @@ decision-making and conversation-dependent tasks.
 **Parallel subagents:** list ALL files each might touch including
 barrel files, shared types, config. Overlap → run sequentially.
 Barrel file updates are main-agent responsibility after completion.
+**Default to parallel dispatch for independent investigations** —
+three reads in parallel is nearly always faster than three reads in
+sequence, and token cost is the same. Sequential is only correct
+when one investigation's output feeds the next.
 
 **Implementation subagent context:** include relevant SPEC.md
 decisions + project conventions snippet (API format, error pattern,
 naming, auth approach).
+
+**Multi-perspective analysis (contested decisions).** For genuinely
+hard calls — architecture choices with real trade-offs, security
+decisions with no obviously right answer, refactor strategies that
+could go several ways — dispatch 2-3 subagents with deliberately
+different framings rather than one subagent asked to "consider all
+angles." Example framings: *find what's wrong* / *find what's
+missing* / *find what's brittle*, or *defender* / *attacker* /
+*maintainer*. Synthesize in the main agent. One subagent with a
+broad prompt produces flatter analysis than three subagents with
+sharp framings.
 
 ---
 
