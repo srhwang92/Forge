@@ -1,23 +1,28 @@
 # Forge
 
-A Claude Code development infrastructure that replaces a human engineering
-team with a single developer + AI — without sacrificing quality, security,
-or professionalism.
+A Claude Code development infrastructure for solo developers and
+small teams who want AI-assisted work to come closer to the quality
+bar of a senior engineering team — without replacing what a real
+team provides.
 
-36 files. ~5,950 lines. 13 independent security audits (OWASP ASVS, red
-team, cold review, comprehensive, verification rounds, targeted additions
-review). Built for production.
+36 files. ~5,950 lines. 13 independent security audits (OWASP ASVS,
+red team, cold review, comprehensive, verification rounds, targeted
+additions review). Used for production work; not a substitute for
+human review.
 
 ---
 
 ## What This Is
 
 Forge is a system of configuration files, engineering standards, safety
-guardrails, project templates, and a persistent memory architecture that
-govern how Claude Code writes software. It ensures every line of output
-meets the standard of a senior engineering team — secure, accessible,
-well-tested, legally compliant, and indistinguishable from human-written
-code.
+guardrails, project templates, and a persistent memory architecture
+that shape how Claude Code writes software. It pushes output toward
+the standard of a senior engineering team — more secure, more
+accessible, more thoroughly tested, more legally aware, more readable.
+It does not guarantee any of that. Forge is a floor, not a ceiling,
+and like any instruction-based system it reduces failure modes rather
+than eliminating them. See Limitations for the honest version of what
+it can't do.
 
 Built for multi-client development across websites, webapps, mobile apps,
 ecommerce, SaaS, dashboards, ML/AI, agents, and automation — on Supabase,
@@ -38,9 +43,14 @@ AI-assisted development without guardrails produces code that is:
 - **Amnesiac** — context loss after compaction, hallucinated components,
   forgotten decisions, compound assumptions
 
-Forge prevents all of it through files Claude reads before writing a
-single line of code, and a memory system that survives any amount of
-context loss.
+Forge addresses these patterns through files Claude reads before and
+during development, a memory architecture designed to survive routine
+context loss, and verification layers that catch common failure modes
+after implementation. It does not eliminate any of these problems —
+AI is still AI — but it makes them meaningfully less frequent and
+gives you external checkpoints where you can catch what slipped
+through. See Limitations for what's inherent to AI-assisted
+development and cannot be fixed by instruction files alone.
 
 ## File Structure
 
@@ -75,17 +85,20 @@ context loss.
 
 ## The Memory System
 
-The #1 problem in AI-assisted development: **context degradation after
-compaction.** Claude forgets what exists, why decisions were made, and
-what must remain true. Summaries and logs are lossy — they capture what
-happened but not the verified state of the system.
+One of the biggest problems in AI-assisted development:
+**context degradation after compaction.** Claude forgets what exists,
+why decisions were made, and what must remain true. Summaries and
+logs are lossy — they capture what happened but not the verified
+state of the system.
 
-Forge solves this with 5 mechanisms:
+Forge reduces (not eliminates) this with 5 mechanisms:
 
 **REGISTRY.md** — Living index of every component, endpoint, utility,
 and table. One line each with lifecycle status, test coverage, and
-rollback points. After compaction, Claude reads the registry and knows
-exactly what exists without rediscovery or hallucination.
+rollback points. After compaction, Claude reads the registry first to
+minimize rediscovery and reduce hallucinated component names and paths.
+Claude can still hallucinate things that aren't in the registry; the
+registry just makes rediscovery cheap when it happens.
 
 **DECISIONS.md** — Domain-organized reasoning memory. Not chronological
 — grouped by system area (Auth, Payments, Data Model). Each decision
@@ -99,7 +112,9 @@ invariant without a canary is an unenforced claim.
 
 **Canary tests** — Automated tests in `tests/canaries/` that verify
 assumptions and constraints, not features. If a new table is added
-without RLS, the canary catches it. Runs with the normal test suite.
+without RLS, a well-written canary catches it. Runs with the normal
+test suite. The canary is only as good as the test that was written —
+see Limitations for why AI-written canaries share the AI's blind spots.
 
 **Phase snapshots** — Records at phase boundaries capturing what was
 built, verification evidence, decisions made, and issues deferred. The
@@ -107,13 +122,68 @@ summary (~10 lines) is read every session. Detail is read on demand.
 
 ### Tiered Reconstruction
 
-After compaction or context loss, Claude rebuilds context deterministically:
+After compaction or context loss, Claude rebuilds context in a defined
+order. The protocol is deterministic; the interpretation Claude derives
+from the files is not.
 
 - **Tier 1 (always):** Config → guardrails → spec → registry → invariants
   → decisions TOC → latest snapshot → status/plan
 - **Tier 2 (on demand):** Decisions domain section → registry detail →
   verification evidence
 - **Tier 3 (implementation):** Source code via registry paths + imports
+
+## The Guardrail System
+
+GUARDRAILS.md is Forge's largest file (~1,100 lines) and the canonical
+source of safety, security, and quality rules. It's always loaded into
+Claude's context regardless of ceremony level. Industry templates in
+`templates/guardrails/` extend it per project — combined at setup into
+a project-level GUARDRAILS.md that adds to (never overrides) the
+global file.
+
+Rules are grouped by domain:
+
+- **Code safety** — hallucination prevention, known-fragile domains
+  (float-for-money, timezones, RLS, IDOR), test integrity and canary
+  quality, dependency rules, error loop prevention
+- **Data & privacy** — PII handling, data classification, privacy
+  regulations (GDPR, CCPA, PIPEDA), client confidentiality, AI data
+  flows (what can and can't be sent to LLM APIs), intellectual property
+- **Security** — auth lifecycle, session hardening, threat modeling,
+  production environment protection, CI/CD enforcement (mechanical
+  checks that don't depend on AI compliance)
+- **Operational discipline** — human-approval gates, scope protection,
+  git safety, file protection, quality drift prevention, token and
+  context discipline
+- **User-facing** — content claims (no invented testimonials or
+  statistics), design system protection, business logic and
+  algorithmic fairness, performance and accessibility floors
+- **Governance** — escalation levels, in-session immutability,
+  conflict resolution hierarchy (Data Protection > Security >
+  Production > Client Confidentiality > everything else)
+
+A few design choices worth knowing about:
+
+- **Always-active sections** apply at every ceremony level including
+  `minimal` — hallucination prevention, data/PII, security standards,
+  client confidentiality, business logic safety, IP, git safety, file
+  protection. These aren't dialable.
+- **Deliberate duplication.** Critical rules (IDOR prevention,
+  float-for-money, RLS enforcement) appear in GUARDRAILS.md AND in
+  rules files AND in industry templates. The redundancy is intentional:
+  these rules must stay visible regardless of which files Claude has
+  loaded. If wording differs across files, GUARDRAILS.md is canonical.
+- **Voluntary compliance, mechanical backstop.** Forge cannot prevent
+  Claude from violating a rule. The CI/CD Enforcement section specifies
+  mechanical checks (type checking, linting, secret scanning, SAST)
+  that don't depend on Claude following instructions.
+- **Bypass discipline.** The highest-severity guardrails (Data
+  Protection, Security, Production Environment) require written risk
+  acceptance in STATUS.md even when the project lead approves a bypass.
+
+You don't need to read GUARDRAILS.md end-to-end. Claude loads it; you
+review what Claude does. Open it when you want to understand why
+Claude pushed back on something, or when adding project-specific rules.
 
 ## Ceremony Levels
 
@@ -163,7 +233,7 @@ tight. Run it when the stakes justify it.
 
 ## Minimum Viable Forge
 
-Forge has 35 files and a lot of ceremony. You don't have to use all
+Forge has 36 files and a lot of ceremony. You don't have to use all
 of it to get value. If you want to start fast, use this subset:
 
 - **`GUARDRAILS.md`** — the security content is the highest-value
@@ -173,9 +243,9 @@ of it to get value. If you want to start fast, use this subset:
   the "how code reads" and "pushback / dead code / patterns" rules.
   Small files, high leverage.
 - **Memory architecture** — REGISTRY.md, DECISIONS.md, INVARIANTS.md,
-  and `tests/canaries/`. This is the post-compaction survival system
-  and it's real. Without it, Claude hallucinates paths after every
-  compaction.
+  and `tests/canaries/`. This is the post-compaction survival system.
+  Without it, Claude tends to hallucinate paths and re-derive decisions
+  from scratch after compactions.
 - **The interview** (`templates/interview.md`) — 7 questions at
   project start. Cheap, high-value.
 - **Layer 1 self-check** — the mechanical "did the tests pass, does
@@ -186,7 +256,7 @@ snapshots, health checks, Layer 2 subagent review, project setup
 apparatus, DESIGN.md workflow (unless doing heavy UI work), HANDOFF.md
 (only at ship milestone), cross-model adversarial review.
 
-The minimum viable version is roughly 8 files instead of 35. You
+The minimum viable version is roughly 8 files instead of 36. You
 can always add more ceremony when you hit a problem the minimal
 version doesn't solve. Don't adopt rules you aren't going to follow —
 that's how governance systems become theater.
@@ -284,36 +354,42 @@ When you ask Claude to do something (feature, bug fix, refactor):
 
 1. **Explore** — reads REGISTRY.md dependents, greps imports,
    identifies affected files, reports back.
-2. **Plan** — proposes an approach with acceptance criteria. You
-   approve before any code is written (Tier A gate).
+2. **Plan** — proposes an approach with acceptance criteria. Claude
+   should stop here for your approval before implementation begins
+   (Tier A gate). If Claude skips straight to implementation on a
+   non-trivial task, remind it to present the plan first.
 3. **Implement** — writes code, running tests as it goes.
 4. **Verify** — Layer 1 self-check (tests, lints, build, axe-core on
    UI, REGISTRY update) followed by Layer 2 subagent review on
    non-trivial tasks at `standard` ceremony.
 5. **Commit** — proposes a commit message following your git conventions.
 
-You never need to remember to "run Forge" — Claude applies the
-verification layers automatically based on the ceremony level in
-your project CLAUDE.md.
+Claude applies the verification layers based on the ceremony level in
+your project CLAUDE.md, but the rules are voluntary — it can skip
+steps, especially under context pressure. If a Layer 1 check was
+obviously missed (no test run, no REGISTRY update on a new component),
+tell Claude to complete it before proceeding.
 
 ### Recovering from compaction
 
 When Claude hits the context limit or you run `/compact`, Forge's
-tiered reconstruction runs automatically on the next turn:
-**Tier 1** (always) reads project CLAUDE.md, GUARDRAILS.md, SPEC.md,
-REGISTRY.md, INVARIANTS.md, DECISIONS.md TOC, latest phase snapshot,
-STATUS.md, PLAN.md, and latest log. **Tier 2** loads specific
-DECISIONS.md domains or REGISTRY details on demand. **Tier 3** reads
-source files as the task requires.
+tiered reconstruction is designed to run on the next turn. In
+practice Claude usually reads the Tier 1 files correctly; if it seems
+to be working from memory instead, ask "did you read REGISTRY.md and
+DECISIONS.md?" directly.
+
+- **Tier 1** (always) reads project CLAUDE.md, GUARDRAILS.md, SPEC.md,
+  REGISTRY.md, INVARIANTS.md, DECISIONS.md TOC, latest phase snapshot,
+  STATUS.md, PLAN.md, and latest log.
+- **Tier 2** loads specific DECISIONS.md domains or REGISTRY details
+  on demand.
+- **Tier 3** reads source files as the task requires.
 
 **Mid-refactor compaction:** Claude reads `.claude/in-progress.md` if
 it exists — a scratchpad with what was done, what's next, and expected
 transient test failures. Don't panic-revert failing tests before
 checking it. The file is only maintained for refactors touching 5+
 files.
-
-If Claude seems confused post-compaction — asking about things you
-already discussed — ask "did you read REGISTRY.md?" directly.
 
 ### Phase boundaries and shipping
 
