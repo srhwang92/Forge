@@ -325,30 +325,77 @@ Forge loads automatically once installed — there is no command to run.
 When you open Claude Code in a project, Claude reads the global
 `~/.claude/` files and any project-level files that exist.
 
+**Forge is the outer loop, not the build workflow itself.** Forge
+handles project setup, memory, verification, and the rules Claude
+follows while building. The actual per-feature build sequence
+(brainstorm → spec → plan → TDD → implement → review) is provided by
+your build workflow plugin — Superpowers, or whichever skill stack
+you use. The two layer: Forge sets up the project and the rules
+once, then your build workflow runs inside those rules for every
+feature. You don't choose between them; you run Forge around your
+build workflow.
+
 ### Starting a new project
 
-Open Claude Code in an empty directory (or a freshly cloned template)
-and describe what you want to build in one sentence. Claude will:
+**Before opening Claude Code:**
+
+1. Set up the folder. **Greenfield:** `mkdir` + `git init`. **From a
+   template** (Vercel starter, Dawn theme, shadcn template, Railway
+   starter, etc.): clone or download it into the folder, run the
+   install command, verify it builds and runs locally. Don't make
+   Claude debug template setup before it knows what the project is.
+2. Have a one-sentence description of the project ready.
+
+**Open Claude Code and tell it what you're doing in one message:**
+
+> *"I'm starting a new project [from a Vercel SaaS template I've
+> already loaded / from scratch]. The project will be [one-sentence
+> purpose]. Please run the Forge interview first, then handle project
+> setup."*
+
+The "run the Forge interview first" instruction is technically
+redundant — global CLAUDE.md already requires it for any non-trivial
+work — but saying it explicitly prevents Claude from jumping straight
+to feature implementation before scaffolding exists. Claude will then:
 
 1. **Run the interview** — 7 grouped questions covering purpose,
    stack, data sensitivity, AI features, scope, existing context, and
-   design. Answer all at once. "You decide" answers trigger pushback
-   with concrete options.
-2. **Propose a ceremony level** based on your answers and the
-   Ceremony Floors table. Regulated floors are mandatory.
-3. **Create the project scaffolding** — project CLAUDE.md, GUARDRAILS.md
+   design. For template projects, Claude pre-fills stack answers from
+   `package.json` and asks you to confirm. "You decide" answers
+   trigger pushback with concrete options.
+2. **Propose a ceremony level** from the Ceremony Floors table.
+   Regulated floors are mandatory.
+3. **For template projects:** scan the file structure (chunked across
+   subagents if 50+ files) to populate REGISTRY.md, and seed
+   DECISIONS.md with the template's baked-in choices (auth provider,
+   ORM, styling system, deployment target) marked as "Template default."
+4. **Create the project scaffolding** — project CLAUDE.md, GUARDRAILS.md
    (combined from industry templates), SPEC.md, REGISTRY.md,
    DECISIONS.md, INVARIANTS.md, STATUS.md, PLAN.md.
-4. **Ask 3-5 clarifying questions** from scanning your answers against
-   the spec. Answers go into DECISIONS.md.
+5. **Ask 3-5 clarifying questions** from scanning your answers against
+   the spec — and against the template's existing schema/auth/routes
+   for template projects. Answers go into DECISIONS.md.
 
-Full setup takes 15-30 minutes. After that, begin Phase 1 of PLAN.md.
+Full setup takes 15-30 minutes of back-and-forth. Commit the scaffold.
+Begin Phase 1 of PLAN.md — at which point your build workflow plugin
+takes over for the first feature.
 
-**Existing codebase?** Tell Claude you want to adopt Forge. It runs
-an onboarding scan to populate REGISTRY.md from the filesystem, then
-runs the interview with pre-filled answers.
+**If Claude skips the interview** and jumps to brainstorming or
+implementation, stop it: *"Wait — run the project interview from
+`templates/interview.md` first. We're at project setup, not feature
+building."*
+
+**Existing codebase, not a template?** Same flow. Tell Claude you
+want to adopt Forge on an existing project. It runs an onboarding
+scan to populate REGISTRY.md from the filesystem before the interview,
+then runs the interview with as much pre-filled as possible.
 
 ### A typical task
+
+Once project setup is done and you're in Phase 1, this is the per-task
+loop. Your build workflow plugin (Superpowers, etc.) drives the
+brainstorm → spec → plan → TDD sequence within this loop; Forge
+governs the verification layers around it.
 
 When you ask Claude to do something (feature, bug fix, refactor):
 
