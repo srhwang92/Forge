@@ -5,9 +5,14 @@
 > auto-generated — review before UI work begins.
 
 **Token format:** CSS custom properties (`--token-name: value`)
+for web projects. **React Native / mobile projects:** tokens are
+TypeScript constants in a shared `theme.ts` — numeric values with
+no `px`/`em`/`rem` units (RN uses dp/pt natively). No CSS breakpoints;
+use `Dimensions.get('window')` or `useWindowDimensions()`. See
+`mobile-app.md` § Styling & Design Tokens.
 **Naming:** CTI convention — `[Category]-[Type]-[Item]-[State/Variant]`
 **Implementation:** [Tailwind config extends | CSS `@layer tokens` |
-Shopify theme.css custom properties]
+Shopify theme.css custom properties | RN `theme.ts` export]
 
 ---
 

@@ -6,6 +6,21 @@ restrictions but **never remove, weaken, or override** any rule in this
 global file. If a project-level file contradicts a global guardrail,
 the global guardrail wins.
 
+**Intentional duplication:** Some critical rules (IDOR prevention,
+float-for-money, RLS enforcement) appear in this file AND in rules files
+AND in industry templates. This is deliberate — these rules must be
+visible regardless of which files are loaded. **This file is the canonical
+source.** If wording differs across files, this file's version governs.
+
+**Always-active sections** (apply at ALL ceremony levels including
+`minimal`): Hallucination Prevention, Production Environment Protection,
+Data Protection & PII, Security Standards (Auth Lifecycle, Session
+Hardening), Privacy & Regulatory Awareness (Threat Modeling), Client
+Confidentiality, Business Logic & Algorithmic Safety, Intellectual
+Property, Git Safety, File Protection.
+Sections that scale with ceremony: Human-Approval Gates, Quality Drift
+Prevention, Token & Context Discipline.
+
 **Never bypass a guardrail without the project lead's explicit approval.**
 For the highest-severity guardrails (Data Protection, Security, Production
 Environment), even with the project lead's approval to bypass, **document the specific
@@ -85,34 +100,37 @@ looks right causes more damage than obvious errors.
 
 ## Human-Approval Gates
 
-**Stop and ask before:**
+Approval gates are tiered by impact. Higher tiers require more friction.
+
+**Tier A — Stop and wait for explicit approval:**
 - Deleting files, directories, or database tables
 - Changing auth, session, token, or permission logic
 - Changing encryption, hashing, or any security-critical algorithm
 - Modifying data retention, deletion, or archival logic
 - Modifying environment config, CI/CD pipelines, or deployment settings
-- Adding new dependencies (explain why, what alternatives exist, confirm
-  no known CVEs, verify license compatibility)
-- Upgrading core framework or library major versions (React, Next.js,
-  Supabase SDK, database ORM, auth library — breaking changes likely)
 - Changing database schemas or running migrations
-- Modifying API contracts that external consumers depend on
 - Changing pricing, billing, payment, or any money-handling logic
 - Implementing or modifying any algorithm that makes decisions affecting
-  users (approval/denial, scoring, ranking, pricing, eligibility,
-  content filtering, recommendations)
-- Modifying public-facing copy, legal text, or compliance-related content
-- Sending communications to end users (emails, SMS, push notifications)
-- Implementing analytics or tracking that collects user behavior data
-- Implementing or modifying consent mechanisms (cookie banners, opt-in
-  flows, marketing consent, tracking consent)
-- Removing or modifying existing accessibility features (aria attributes,
-  keyboard navigation, focus management, screen reader support)
-- Any bulk data operation (mass update, migration, import/export) that
-  touches more than 100 records
+  users (approval/denial, scoring, ranking, pricing, eligibility)
 - Any operation that is destructive or irreversible
-- Deviating from `DESIGN.md` tokens, palette, typography, or spacing
 - Changing system design decisions documented in `SPEC.md`
+
+**Tier B — Mention the change, proceed unless the project lead objects:**
+- Adding new dependencies (state the name, why, and license)
+- Upgrading core framework or library major versions
+- Modifying API contracts that external consumers depend on
+- Modifying public-facing copy, legal text, or compliance content
+- Implementing analytics or tracking that collects user behavior
+- Implementing or modifying consent mechanisms
+- Removing or modifying existing accessibility features
+- Deviating from `DESIGN.md` tokens, palette, typography, or spacing
+- Any bulk data operation touching more than 100 records
+
+**Tier C — Document in session log, no approval needed:**
+- Sending communications to end users (if the template/content is
+  already approved)
+- Minor dependency updates (patch versions)
+- Adding new non-sensitive environment variables
 
 ---
 
@@ -131,8 +149,10 @@ looks right causes more damage than obvious errors.
   data breach.
 - **No debug code in production.** Before any merge or deploy, verify:
   no `console.log`, no `debugger` statements, no hardcoded test data,
-  no mock services, no `TODO`/`FIXME` without ticket references, no
-  disabled tests, no commented-out code blocks.
+  no mock services, no unlinked `TODO`/`FIXME` markers, no
+  disabled tests, no commented-out code blocks. **TODO lifecycle:**
+  write TODOs freely during development (see code-voice.md) → add
+  issue/ticket reference before PR → block deploy if unlinked.
 - **No system-level commands.** Never run commands that affect the OS
   outside the project directory. If a system-level change is needed,
   ask the project lead to execute it.
@@ -146,6 +166,12 @@ looks right causes more damage than obvious errors.
   analytics queries, verify the query is bounded (LIMIT, date range,
   WHERE clause). An unbounded `SELECT` on a large table can crash
   connections or exhaust memory.
+- **DNS and subdomain security.** When deprovisioning a deployment
+  (Vercel, Netlify, Railway), remove the DNS CNAME/A record BEFORE
+  or simultaneously with the deployment. A dangling CNAME pointing
+  to a deprovisioned platform is trivially claimable by an attacker.
+  At deployment health checks, verify all configured subdomains
+  resolve to active deployments.
 
 ---
 
@@ -186,8 +212,34 @@ looks right causes more damage than obvious errors.
   override right to erasure per PIPEDA and GDPR Article 17(3)(b).
 - **Backups and encryption at rest.** Production databases must have
   automated backups. Data at rest must be encrypted. Flag any
-  architecture that lacks either — data loss from missing backups
-  violates PIPEDA's safeguard principle.
+  architecture that lacks either. **An untested backup is not a
+  backup** — document the backup restoration procedure in HANDOFF.md
+  (Maintenance section): a procedure to restore from backup to a
+  staging environment and verify data integrity. Run at least once
+  before launch and quarterly thereafter.
+- **Memory and documentation files are subject to the same PII/secret
+  restrictions as code and logs.** STATUS.md, DECISIONS.md, REGISTRY.md,
+  session logs, and phase snapshots must never contain secrets, connection
+  strings, API keys, or PII. When documenting integration decisions,
+  reference env var names (`STRIPE_SECRET_KEY`), not values. Pre-commit
+  scans must cover `.md` files, not just code files.
+
+### Data Classification
+
+At project setup, classify each data field the system handles:
+- **Public** — no restrictions (marketing copy, public API docs)
+- **Internal** — not for end users (admin metrics, system logs)
+- **Confidential** — PII and business-sensitive (email, name, order data)
+- **Restricted** — regulated or high-impact (health records, financial
+  data, credentials, payment instruments)
+
+Document classifications in SPEC.md or a dedicated section of project
+GUARDRAILS.md. Per-classification handling:
+- Public: no special handling
+- Internal: no exposure to end users, basic access control
+- Confidential: encrypt at rest, mask in list views, log access
+- Restricted: encrypt at rest and in transit, audit all access, apply
+  regulatory retention rules, flag for compliance review
 
 ---
 
@@ -240,6 +292,13 @@ Non-negotiable on every project:
   ≥1, dates must be in valid ranges, statuses must follow allowed
   transitions. AI never infers these — they must be explicit in
   schemas or validation layers.
+- **RLS bypass inventory.** Any endpoint, function, or query that uses
+  a service role key, `SECURITY DEFINER`, or otherwise bypasses
+  Row-Level Security must be tracked in REGISTRY.md with an
+  `admin-bypass` tag. These paths must have: IP/network restriction
+  or separate admin auth, explicit role verification, and audit logging.
+  Test that non-admin users cannot reach RLS-bypassing endpoints. A
+  single exposed service-role endpoint negates ALL RLS policies.
 - Proper CORS (explicit origins, never wildcard in production)
 - **HTTPS in production — no exceptions.** Never use HTTP URLs for API
   endpoints, webhooks, or asset loading in production. Never set
@@ -262,6 +321,13 @@ Non-negotiable on every project:
   public, secret key is secret), Shopify (Storefront API token is
   public, Admin API token is secret). When unsure whether a key is
   safe for the client, treat it as secret.
+- **API key scoping.** When creating API keys or service credentials:
+  use the minimum permissions required (read-only if only reading),
+  create separate keys per environment (dev/staging/prod — never share),
+  create separate keys per service (don't reuse the same key for
+  Stripe and SendGrid), and prefer service accounts over personal
+  accounts for production integrations. Document each key's scope in
+  `.env.example` comments.
 - **Never expose infrastructure details to end users.** Error responses,
   HTTP headers, and API output must not reveal framework names, database
   types, server paths, hosting platform, or internal IP addresses.
@@ -281,6 +347,44 @@ Non-negotiable on every project:
   hits. Without these logs, breaches go undetected for months. Use
   structured logging with severity levels — security events are `warn`
   or `error`, never `debug` or `info` that gets filtered in production.
+
+### Authentication Lifecycle
+
+These controls apply to any project with user accounts. **Configure
+these in your auth provider (Supabase Auth, Clerk, Auth.js, etc.) —
+do not implement custom auth logic.** If the auth provider doesn't
+support a control, flag it for the project lead as a provider limitation.
+
+- **Multi-factor authentication.** For projects handling sensitive data
+  (financial, health, PII beyond email), flag MFA as a requirement
+  during project setup. Enable TOTP or equivalent in the auth provider.
+  For regulated industries, MFA is mandatory, not optional.
+- **Account lockout.** Configure the auth provider for lockout after
+  5-10 consecutive failed attempts (15-30 minutes) or CAPTCHA.
+  If the provider doesn't support lockout, implement rate limiting
+  at the API layer as a stopgap and flag for the project lead.
+- **Credential recovery.** Verify the auth provider's password reset
+  flow uses time-limited tokens (≤1 hour), invalidates tokens on use,
+  and doesn't reveal account existence. Log all reset attempts.
+- **Password requirements.** Configure minimum length (≥8 characters)
+  in the auth provider. Never implement custom password rules alongside
+  the provider — it creates two validation paths that can diverge.
+
+### Session Management Hardening
+
+- **Session invalidation on logout.** Server-side session or token must
+  be revoked on logout, not just cleared client-side. A stolen token
+  must stop working after the user logs out.
+- **Idle timeout.** Define per project based on data sensitivity:
+  general (8 hours), sensitive data (1 hour), regulated (15 minutes per
+  HIPAA/financial requirements). Use the industry guardrail template
+  value if applicable.
+- **Session fixation prevention.** Regenerate session ID after
+  authentication. Never reuse a pre-authentication session token.
+- **Re-authentication for sensitive operations.** Require password or
+  MFA re-entry before: changing email/password, deleting account,
+  exporting data, modifying payment methods, or any operation the
+  industry template marks as high-privilege.
 
 ---
 
@@ -324,6 +428,24 @@ project-specific guardrail templates:
   implement data models that make these rights impossible to fulfill.
 - Breach notification is a legal obligation, not optional. If you
   discover exposed data, treat it as **Escalation Level 3**.
+
+### Threat Modeling
+
+For projects at `standard` ceremony with meaningful architecture
+(database, auth, API layer, external integrations):
+- **At project start,** identify the top 3-5 threat categories relevant to
+  the project. Use the data types and architecture from the interview:
+  user data → auth attacks; payment data → financial fraud; health data →
+  PHI exposure; public API → abuse/scraping; file uploads → malicious
+  content.
+- **Document threats in SPEC.md** under a Threats section: what could go
+  wrong, what's the impact, and which guardrails/controls address it.
+- **This is not a formal STRIDE/DREAD analysis** — it's a lightweight
+  threat identification to catch attack surfaces the generic guardrails
+  don't cover. For regulated industries, recommend a professional threat
+  model review.
+- Map each identified threat to a specific canary test or guardrail rule.
+  Unmapped threats are gaps.
 
 ---
 
@@ -404,6 +526,57 @@ Any project with algorithms that make decisions affecting users:
 
 ---
 
+## AI Data Flows (Always Active)
+
+These rules apply to every project, every ceremony level, regardless
+of whether `ai-features.md` or `ml-ai-agents.md` has been loaded.
+Full AI feature guidance lives in those templates; the rules below
+are the non-negotiable subset that must survive template selection
+failure. Failure to load the AI templates does not exempt a project
+from these rules. If a project uses AI features, these rules apply.
+
+- **Server-side proxy for all LLM calls.** Never import LLM SDKs in
+  client-side code. Never expose provider API keys to the browser.
+  A canary test must grep the production bundle for provider domains
+  (`api.openai.com`, `api.anthropic.com`, `generativelanguage.googleapis.com`)
+  and fail the build if any are found.
+- **Tenant-scoped vector queries are mandatory.** Every vector
+  similarity query MUST include a tenant or user filter. RLS does
+  NOT apply to vector databases — Pinecone, Weaviate, and pgvector
+  similarity queries are a separate access path. A vector-IDOR canary
+  is required for every project with embeddings: embed as User A,
+  query as User B, assert zero results — AND assert that User A can
+  retrieve their own document (control assertion prevents vacuous
+  pass on a misconfigured pipeline).
+- **Sending user data to LLM providers is a third-party data transfer.**
+  It inherits all regulations covering the source data. PHI to an LLM
+  requires a BAA. GDPR personal data requires a DPA, legal basis, and
+  privacy policy disclosure. Financial data inherits GLBA. Verify the
+  provider's terms before first production call, not after.
+- **Structured output for actions, sanitization for rendering.** If AI
+  output triggers side effects (writes, sends, deletes), use structured
+  output with schema validation before execution. If AI output is
+  rendered to users as HTML or markdown, sanitize with the strict
+  DOMPurify config in `frontend-standards.md` — never defaults. These
+  are two separate requirements. Complying with one does not satisfy
+  the other.
+- **Agents with tool access are authenticated clients, not trusted
+  internal code.** Every tool an agent can call is an API surface.
+  Every tool call argument is untrusted input. Apply input validation,
+  permission scoping, and audit logging as if the agent were an
+  external caller. Using service-role or admin credentials in an agent
+  context violates per-user access control regardless of RLS and must
+  be tracked in REGISTRY.md admin-bypass column with explicit
+  justification.
+- **Prompts containing business rules, system instructions, competitor
+  names, legal text, or proprietary logic are code.** They require the
+  same review, versioning, secret scanning, and change control as
+  source files. Store in a versioned prompt registry tracked in
+  REGISTRY.md, not in freeform string constants scattered across the
+  codebase.
+
+---
+
 ## Intellectual Property
 
 - **Never copy substantial code from external sources** (Stack Overflow,
@@ -419,9 +592,15 @@ Any project with algorithms that make decisions affecting users:
   ISC are safe. Flag anything else.
 - **Never reproduce copyrighted content** (UI designs, marketing copy,
   brand assets, documentation text) from other products.
-- **Document AI involvement.** For files where Claude generated the
-  majority of the logic, note this in the commit message or file header
-  per project conventions.
+- **AI involvement documentation — project-lead-configurable.** If
+  the project has an internal or legal requirement to identify
+  AI-generated code (enterprise SDLC, research code disclosure,
+  specific client contracts), document the convention in project
+  CLAUDE.md under "Things Claude Gets Wrong" or as a project-specific
+  commit rule. Otherwise, commit messages and comments follow
+  code-voice.md rules without AI metadata — adding "AI-generated" to
+  every commit accumulates as noise that readers cannot act on.
+  The default is no AI metadata in code or commits.
 
 ---
 
@@ -516,9 +695,16 @@ high coverage with zero confidence.
   the specification, not in terms of the implementation. If you can't
   describe the expected behavior without referencing the code, the
   test is tautological.
-- **Mutation testing mindset.** Before declaring tests adequate, ask:
-  "If I changed this line of logic, would any test fail?" If the
-  answer is no, the tests are insufficient regardless of coverage.
+- **Mutation testing.** Where mutation testing tools exist for the
+  project's language (Stryker for JS/TS, mutmut for Python, PITest
+  for Java, go-mutesting for Go), run them at milestone boundaries.
+  The tool surfaces tests that don't actually validate the code they
+  cover. Mental thought experiments ("would any test fail if I
+  changed this line?") are NOT a substitute — LLMs cannot reliably
+  reason about which mutations their own tests would catch without
+  running them. Use the tools, don't simulate them in your head.
+  For languages without mature mutation testing, manual test quality
+  review at Layer 2 is the fallback.
 - **Preserve test intent during refactors.** If a test fails after a
   refactor, the default assumption is that the refactor changed
   behavior — not that the test is wrong. Investigate before modifying
@@ -531,6 +717,47 @@ high coverage with zero confidence.
   whatever it returns. Treat inherited code the same as a spec: the
   current behavior may be a bug, not a feature. Flag ambiguous behavior
   for the project lead to confirm before writing the assertion.
+
+### Canary Test Quality
+
+Canary tests enforce INVARIANTS.md constraints. A canary that passes
+vacuously is worse than no canary — it creates false confidence.
+
+- **Canaries must assert a minimum expected count.** A canary checking
+  "all tables have RLS" must first assert that at least N tables exist.
+  `[].every(fn)` returns true in JavaScript — an empty dataset makes
+  every constraint pass. If the query returns zero rows, the canary
+  must fail.
+- **Canaries must test behavior, not just metadata.** An RLS canary
+  that checks "policy exists on table" doesn't verify the policy is
+  correct. Where feasible, canaries should execute a cross-user query:
+  insert as user A, attempt to read as user B, assert failure. Metadata
+  checks (policy existence) are acceptable as a first layer but must be
+  documented as structural-only.
+- **Layer 2 review on first creation.** The first time a canary test is
+  written, it must be reviewed by the Layer 2 subagent to verify it
+  actually tests what the invariant claims.
+- **AI canaries must include control assertions.** A vector-IDOR
+  canary that embeds as User A and queries as User B returns zero
+  results on success — but also returns zero results if the embed
+  step silently failed (wrong collection, wrong endpoint, rate limit,
+  expired credential). Every AI canary must assert that the happy
+  path works before asserting the sad path fails. Template: (1) ingest
+  test data as User A, (2) verify User A CAN retrieve it — this is the
+  control that catches a broken pipeline, (3) verify User B CANNOT.
+  If the control fails, the canary must fail with a message
+  distinguishing "pipeline broken" from "isolation broken" so on-call
+  can triage quickly.
+- **Canaries protect invariants universally, not specific code paths.**
+  An invariant like "no endpoint returns another user's data" applies
+  to ALL endpoints — current and future. When a new endpoint, route,
+  resource, or data access path is added, existing invariant canaries
+  must be reviewed and extended to cover the new surface. A canary
+  that tests only the original 40 endpoints becomes blind the moment
+  endpoint 41 ships. The Layer 1 checklist includes: "Did this change
+  add a new surface that an existing invariant should cover? If yes,
+  extend the canary in the same task." A canary that doesn't cover
+  new surfaces is technical debt, not enforcement.
 
 ---
 
@@ -586,13 +813,34 @@ known-answer test cases and do not trust that "it looks right."
   older versions may reintroduce known vulnerabilities
 - After adding, verify it doesn't duplicate an already-installed package
 - **Dependency velocity check.** If more than 5 new dependencies have
-  been added in a single session or feature, pause and review the list
-  with the project lead. AI accumulates dependencies at a much higher rate than
-  human developers — one audit found 23 new packages added in a month
-  of heavy AI usage, 7 of which were unmaintained.
+  been added in the current phase, pause and review the list with the
+  project lead. Track the count in STATUS.md (e.g., "Dependencies added
+  this phase: 3") so it survives compaction. AI accumulates dependencies
+  at a much higher rate than human developers.
 - **Supply chain safety.** Only install from official registries
   (npmjs.com, pypi.org). Verify the publisher is legitimate —
   typosquatting attacks use near-identical package names.
+- **Lockfile integrity.** Never delete or regenerate lockfiles
+  (`package-lock.json`, `pnpm-lock.yaml`) without reason. The lockfile
+  pins exact versions including transitive dependencies. Run `npm ci`
+  (not `npm install`) in CI to enforce lockfile integrity. If the
+  lockfile and `package.json` diverge, resolve deliberately.
+- **At milestone health checks,** run `npm audit signatures` (if
+  available) to verify packages haven't been tampered with post-publish.
+  Run `npm ci` from a clean state to verify the dependency tree resolves.
+- **Dependency confusion prevention.** If the project uses private or
+  scoped packages (@company/), configure `.npmrc` to route scoped
+  packages to the private registry:
+  `@company:registry=https://your-registry.example.com/`
+  Pin exact versions. Without proper registry scoping, an attacker can
+  publish a public package with the same name as your private package —
+  npm may install the public (malicious) version instead.
+  For private packages, set `"publishConfig": { "access": "restricted" }`
+  in `package.json` to prevent accidental publication to the public
+  npm registry.
+  **Python equivalent:** use `--index-url` (replaces the default index —
+  safe) not `--extra-index-url` (checks both public and private — 
+  vulnerable to confusion).
 
 ---
 
@@ -624,6 +872,17 @@ known-answer test cases and do not trust that "it looks right."
 - If you accidentally modify an out-of-scope file, revert the change
   before committing
 - If a fix requires touching shared infrastructure, flag it and wait
+- **Scope Protection vs. Pattern Propagation — precedence.** Fixing
+  the originally-requested bug in every instance of the same pattern
+  is NOT scope creep — it's the correct fix. If the task is "fix
+  the race condition in `useUserData`" and the same race exists in
+  `useOrderData`, `useCartData`, and `useInvoiceData`, fix all four.
+  Adding unrelated improvements (renaming variables, extracting
+  helpers, updating comments) while touching those files IS scope
+  creep — don't. When propagating a fix, list the full set of
+  modified files in the task report so the project lead can verify
+  the scope. If uncertain whether propagation is in-scope, propagate
+  the minimum safe fix and flag the rest as follow-up.
 
 ---
 
@@ -645,10 +904,12 @@ known-answer test cases and do not trust that "it looks right."
 ## Git Safety
 
 - Claude Code does NOT create branches, switch branches, push, or
-  force-push
+  force-push. **The project lead creates the working branch before
+  starting Claude Code.** Claude commits to whatever branch is active.
+- Never commit directly to `main` or `master` — if the active branch
+  is main, ask the project lead to create a feature branch first
 - Always checkpoint before destructive operations
 - Never rewrite git history without explicit instruction
-- Never commit directly to `main` or `master`
 - Never include sensitive data in commit messages (no API keys,
   passwords, real user names, or client-specific business details)
 - Never commit binary files (database dumps, compiled artifacts, large
@@ -668,7 +929,16 @@ known-answer test cases and do not trust that "it looks right."
   deleting a canary silently removes invariant enforcement
 - `STATUS.md` and `PLAN.md` should be updated regularly but never
   deleted or started from scratch without asking
-- `.claude/logs/` entries are append-only — never edit or delete
+- `.claude/logs/` entries are append-only — never edit or delete.
+  **If a secret lands in an append-only log** (Claude pasted an error
+  object containing a connection string, API key, or similar), this
+  is a security incident, not a routine edit. Procedure: (1) rotate
+  the compromised secret immediately, (2) archive the affected log
+  file to secure storage outside the repo, (3) start a fresh log
+  file, (4) document the incident in STATUS.md with the rotation
+  confirmation, (5) add a post-mortem entry to DECISIONS.md. Never
+  silently edit an append-only log to remove a secret — the append-only
+  property is what makes the log useful for forensics.
 - Never modify generated files (compiled output, auto-generated types,
   build artifacts) by hand — fix the source and regenerate
 - Platform-specific file protections are defined in project GUARDRAILS.md
@@ -688,27 +958,121 @@ known-answer test cases and do not trust that "it looks right."
 
 ## Quality Drift Prevention
 
-AI-assisted codebases degrade gradually, not suddenly. Each individual
-task passes verification, but aggregate quality erodes as small
-exceptions accumulate — the normalisation of deviance pattern.
+AI-assisted codebases degrade gradually. Each task passes verification
+but aggregate quality erodes as small exceptions accumulate.
 
-**At project milestones** (end of a phase, before deploy, or monthly on
-long-running projects), run a health check:
-- `npm audit` / equivalent for new vulnerabilities
-- Bundle size compared to last milestone — flag if growth exceeds 20%
-- Count new dependencies since last check — review any unexpected ones
-- Run the full test suite (not just changed-file tests)
-- Scan for `TODO`, `HACK`, `FIXME` without linked issues — these
-  accumulate faster with AI and signal untracked debt
-- Check for unused exports and dead code (`knip`, `ts-prune`, or
-  manual review)
-- Verify DESIGN.md tokens are still the only visual values in use —
-  no hardcoded colors or spacing that crept in
+**Monthly health check** (or at phase boundaries, whichever comes first):
+- **Security & dependencies:** `npm audit` / equivalent, review new
+  vulnerabilities, scan for unexpected new dependencies
+- **Bundle & dead code:** bundle size vs last check (flag >20% growth),
+  run `knip` or `ts-prune` for dead exports
+- **Code hygiene:** scan for unlinked `TODO`/`HACK`/`FIXME`, verify
+  DESIGN.md tokens are still the only visual values, verify all
+  configured subdomains resolve (dangling CNAME → subdomain takeover)
+- **Tests & canaries:** run the full test suite, verify canaries pass
+  and still match current invariants
 
-This is not a per-task check. It's a periodic audit to catch what
-per-task verification misses. Record each health check result in
-`.claude/logs/health-YYYY-MM-DD.md` so the next check has a baseline
-to compare against.
+**Quarterly:** backup restoration test, secret rotation check,
+threat model review.
+
+**AI-specific additions (if the project has AI features):**
+- Run prompt regression suite and the vector-IDOR canary (verify
+  control assertion, not just the isolation check)
+- Check model version deprecation calendar (anything within 120 days?)
+- Review cost-per-request trend (>30% increase triggers investigation)
+- Audit REGISTRY.md Agent Tools and AI Prompts for drift from tested
+  versions
+- Verify the AI kill switch works in staging
+- Review LLM provider data processing terms for changes
+
+Record each check in `.claude/logs/health-YYYY-MM-DD.md`. If you skip
+a check, note why in STATUS.md — skipped health checks are acceptable
+when prioritizing, invisible drift is not.
+
+---
+
+## CI/CD Enforcement
+
+AI self-governance has limits. These checks must run mechanically in CI,
+not depend on Claude following instructions:
+
+**Required in every project with CI (non-negotiable):**
+- **Type checking** — `tsc --noEmit` or equivalent. Catches type errors
+  Claude may introduce after compaction when types aren't in context.
+- **Linting** — ESLint (or equivalent) with the project's config. Catches
+  style violations and common bugs.
+- **Test suite** — all tests including canary tests. The one check that
+  directly enforces INVARIANTS.md.
+- **Secret scanning** — `gitleaks` or equivalent. Catches secrets that
+  Claude's behavioral scanning missed. This is the mechanical enforcement
+  for the "pre-commit secret scan" guardrail.
+
+**Required in every project with AI features (non-negotiable):**
+- **Vector-IDOR canary** — if the project uses embeddings or vector
+  search, a canary test that embeds as User A and verifies User B
+  cannot retrieve. Must include a control assertion that User A CAN
+  retrieve their own document before asserting User B cannot (prevents
+  vacuous pass on broken ingestion pipelines).
+- **Bundle LLM-provider scan** — after production build, grep the
+  bundle output for known LLM provider domains (`api.openai.com`,
+  `api.anthropic.com`, `generativelanguage.googleapis.com`). Any match
+  fails the build. Catches client-side SDK imports that secret
+  scanning misses — the SDK import is public code, not a secret.
+- **Prompt registry secret scan** — if prompts live in a directory
+  (`/prompts`, `/src/prompts`, etc.), include that directory in
+  gitleaks or equivalent config. Prompts often contain example
+  credentials, test user IDs, and env var values.
+- **Structured-output schema tests** — if the AI produces structured
+  output consumed by application logic, test that the schema rejects
+  at least three adversarial payloads (script injection, oversized
+  strings, type coercion attempts).
+- **Cost ceiling assertion** — integration tests calling real LLM
+  APIs must assert a max token usage per call. A prompt change that
+  doubles token usage fails a test instead of silently doubling spend.
+
+**Recommended:**
+- **SAST** (Static Application Security Testing) — Semgrep, Snyk Code,
+  or equivalent. Catches vulnerability patterns (SQL injection, XSS,
+  insecure deserialization) that behavioral rules alone can't guarantee.
+- **Dependency audit** — `npm audit` or equivalent. Catches known CVEs
+  in the dependency tree.
+- **Build verification** — full production build. Catches compilation
+  errors, missing env vars, and import resolution failures.
+- **Lockfile integrity** — `npm ci` (not `npm install`). Catches
+  dependency tree inconsistencies.
+
+**Recommended for public-facing production projects:**
+- **Lighthouse CI** — automated performance, accessibility, SEO scoring
+  against defined thresholds.
+- **DAST** (Dynamic Application Security Testing) — for projects with
+  public APIs or web interfaces.
+
+**CI/CD secret isolation:**
+- GitHub Actions workflows triggered by `pull_request` from forks
+  MUST NOT have access to repository secrets. Use `pull_request_target`
+  with explicit checkout and security review for workflows that need
+  secrets. Never run untrusted code (test files, build scripts from a
+  PR) with secrets available — a malicious PR can log
+  `process.env.SUPABASE_SERVICE_ROLE_KEY` and exfiltrate it via CI output.
+- **Artifact poisoning.** In multi-job workflows, a job that runs
+  untrusted PR code can modify build artifacts. Jobs that deploy with
+  production secrets must not consume artifacts from jobs triggered by
+  untrusted code without verification.
+- **`GITHUB_TOKEN` scope restriction.** Add a `permissions:` block to
+  every workflow restricting to the minimum needed (e.g.,
+  `contents: read`, `issues: write`). The default token has write
+  access to the repository.
+- **Prefer OIDC over stored secrets** for cloud deployments. GitHub
+  Actions supports OIDC federation with AWS, GCP, Azure, and Vault —
+  eliminating long-lived secrets in CI entirely.
+- Separate CI secrets by environment. The CI secret for staging must
+  not be the production secret.
+- These patterns are GitHub Actions-specific. Equivalent protections
+  exist in GitLab CI, Bitbucket Pipelines, and CircleCI — consult
+  their documentation for fork/MR secret handling.
+
+When setting up a new project, flag if CI/CD is not configured. These
+checks are the mechanical backstop for every behavioral guardrail.
 
 ---
 

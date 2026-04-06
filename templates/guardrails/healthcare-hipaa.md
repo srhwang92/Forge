@@ -2,12 +2,17 @@
 
 Extends global `~/.claude/GUARDRAILS.md`. These rules are additive.
 
+> **Disclaimer:** These guardrails reduce risk but do not constitute
+> regulatory compliance. For regulated industries (fintech, healthcare,
+> etc.), engage a qualified compliance professional to review the
+> generated project guardrails and the application output. Awareness of
+> regulations is not the same as compliance with them.
+
 ## Applicable Regulations
-See global Privacy & Regulatory Awareness for baseline (PIPEDA, PIPA BC,
-CASL). Additionally for healthcare:
+See global Privacy & Regulatory Awareness for your jurisdiction baseline. Additionally for healthcare:
 - HIPAA (if handling PHI of US persons)
-- Provincial health privacy legislation (varies by province — PIPA BC
-  for the project lead's jurisdiction, PHIPA for Ontario clients, etc.)
+- Regional/provincial health privacy legislation (varies by jurisdiction —
+  e.g., PIPA BC, PHIPA Ontario, state-level US health privacy laws)
 - GDPR if serving EU patients/users
 - FDA regulations if the software qualifies as a medical device (SaMD)
 

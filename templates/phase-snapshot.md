@@ -8,7 +8,12 @@
 - **Decisions made:** [count] (see DECISIONS.md)
 - **Invariants added:** [count]
 - **Test results:** [X passing, Y failing]
-- **Canaries:** [all passing | N failing — list which]
+- **Canary status:** [all passing | N caught real bugs — added to
+  STATUS.md | N need updating — added to PLAN.md]
+  <!-- A failing canary that caught a real invariant violation is
+  working as intended (add the bug to STATUS.md to fix). A failing
+  canary that no longer matches the invariant is technical debt
+  (add to PLAN.md to update the canary). Do NOT conflate the two. -->
 - **Playwright:** [0 violations | N violations — list pages]
 - **Known issues deferred:** [count — see detail below]
 
@@ -22,10 +27,10 @@
      Reference REGISTRY.md entries. -->
 
 ### Verification Evidence
-<!-- Summarize what was tested and the results. Reference files in
-     .claude/verified/ for full output. -->
-- Tests: [summary + path to .claude/verified/phase-N-tests.txt]
-- Playwright: [summary + path to .claude/verified/phase-N-playwright.json]
+<!-- Summarize what was tested and the results. Inline summaries only —
+     raw test output lives in CI logs, not checked-in files. -->
+- Tests: [summary — X passed, Y failed, key coverage notes]
+- Playwright: [summary — X violations, pages checked]
 - Canaries: [summary]
 - Manual checks: [any manual verification performed]
 

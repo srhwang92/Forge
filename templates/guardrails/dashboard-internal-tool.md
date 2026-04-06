@@ -2,13 +2,18 @@
 
 Extends global `~/.claude/GUARDRAILS.md`. These rules are additive.
 
+> **Disclaimer:** These guardrails reduce risk but do not constitute
+> regulatory compliance. For regulated industries (fintech, healthcare,
+> etc.), engage a qualified compliance professional to review the
+> generated project guardrails and the application output. Awareness of
+> regulations is not the same as compliance with them.
+
 "It's internal" is not a security exemption. Internal tools often have
 broader data access than public-facing apps, making them higher-risk
 targets — not lower.
 
 ## Applicable Regulations
-See global Privacy & Regulatory Awareness for baseline (PIPEDA, PIPA BC,
-CASL). Additionally for internal tools:
+See global Privacy & Regulatory Awareness for your jurisdiction baseline. Additionally for internal tools:
 - SOC 2 if the organization requires compliance audits
 - Industry-specific regulations still apply if the tool accesses
   regulated data (HIPAA for health data, GLBA for financial data, etc.)

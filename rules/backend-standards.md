@@ -82,12 +82,37 @@ logic. Never trust client data, URL parameters, headers, or webhook
 payloads.
 
 - Validate type, format, length, range, and allowed values
+- **For financial fields:** also validate domain constraints — see
+  "Business domain validation" in GUARDRAILS.md. Every monetary amount
+  must be positive, in integer cents, and within a defined min/max
+  range. Type-safe validation (zod `z.number()`) is not enough — domain
+  validation (positive, integer, bounded) is a separate concern.
 - Reject unexpected fields (strict schemas) — don't silently ignore them
 - Validate at the boundary once; don't re-validate deep in business logic
 - Return 422 with field-level error details:
   `{ error: { code: "VALIDATION_ERROR", details: [{ field, message }] } }`
-- File uploads: validate content type, file size, and filename server-side.
-  Never trust the client's content-type header alone.
+- **File upload security:**
+  - Validate content type, file size, and filename server-side.
+    Never trust the client's content-type header alone.
+  - **Verify magic bytes** — check the actual file content matches
+    the declared MIME type. A file declared as `image/jpeg` containing
+    PHP code is a polyglot attack.
+  - **Block executable file types:** `.exe`, `.sh`, `.php`, `.jsp`,
+    `.bat`, `.cmd`, `.ps1`, `.msi`, `.dll`, `.so`. Reject double
+    extensions: `file.jpg.php`, `file.png.exe`.
+  - **Prevent path traversal in filenames.** Strip `../`, `..\\`, and
+    absolute paths. Generate a random filename server-side.
+  - **Store in non-executable location.** Use object storage (S3,
+    Supabase Storage) with a separate origin. Never serve uploads
+    from the application's own domain or a directory with execute
+    permissions.
+  - **Re-encode images** through a processing library (sharp, Jimp)
+    to strip metadata (EXIF GPS = PII) and prevent image-based
+    exploits.
+  - **Archive files** (.zip, .tar.gz): if the application accepts
+    archive uploads, check decompressed size before extracting (zip
+    bomb prevention) and validate extracted file paths don't escape
+    the target directory via `../` in filenames (zip slip).
 
 ---
 
@@ -102,7 +127,10 @@ things go wrong.
   layer. Business logic throws domain errors; the API layer maps them to
   HTTP status codes and response shapes.
 - **Never swallow errors.** Every `catch` must either handle, rethrow, or
-  log with context. Empty catch blocks are banned.
+  log with context. Empty catch blocks are banned. A `catch` with a
+  comment explaining why it's safe to ignore (per code-voice proportional
+  error handling) counts as "handling" — what's banned is an empty catch
+  with no explanation.
 - **Never expose internals.** Client error responses include error code,
   human-friendly message, and correlation ID. Never stack traces, SQL
   queries, file paths, or internal state.
@@ -172,14 +200,25 @@ things go wrong.
   irreversible with the project lead's approval.
 
 ### Data Retention & Soft Delete
-- **Never hard-delete user data or business records.** Use soft delete
-  (`deleted_at` timestamp) or archive to a separate table. Hard delete
-  is only acceptable for ephemeral data (sessions, temp files, caches)
-  or when explicitly required by data privacy regulations (right to
-  erasure) — and even then, log that the deletion occurred.
+- **Default to soft delete for business records.** Use a `deleted_at`
+  timestamp or archive to a separate table. Hard delete is acceptable
+  for ephemeral data (sessions, temp files, caches).
+- **Right-to-erasure requests take precedence over soft-delete defaults.**
+  When a user exercises GDPR Article 17, PIPEDA, or CCPA deletion
+  rights, you MUST hard-delete or irreversibly anonymize their personal
+  data. Soft-delete with `deleted_at` is NOT erasure — the row still
+  exists and is reconstructable. Procedure: irreversibly anonymize
+  personal fields (name, email, phone, address → hashed or nulled),
+  hard-delete any field that cannot be anonymized while retaining
+  utility, preserve the anonymized business record for audit, log
+  that the erasure occurred (without logging the erased values).
+  See GUARDRAILS.md "Audit retention vs right to erasure" for the
+  full procedure.
 - **Audit-sensitive tables** (users, transactions, permissions, payments)
   must retain history. Use an audit log, event sourcing, or a history
-  table — never silently overwrite previous values.
+  table — never silently overwrite previous values. Audit records
+  can be anonymized for erasure compliance but should never be deleted
+  outright.
 
 ### Bulk Operations
 - **Never process large datasets one row at a time.** Use batch inserts
@@ -197,13 +236,22 @@ things go wrong.
 
 - **Never build custom auth.** Use established libraries/services
   (Supabase Auth, NextAuth, Auth.js, Clerk). Flag any auth changes for
-  the project lead's review.
+  the project lead's review. "Custom auth" means: implementing
+  credential storage, password hashing, or session token generation
+  from scratch. Rate limiting, lockout policies, and session hardening
+  ON TOP of an auth provider are expected configuration — not custom
+  auth.
 - **Verify ownership on every resource access.** The #1 API vulnerability
   (BOLA/IDOR): a user changes an ID in the request and accesses another
   user's data. Every endpoint that returns or modifies a resource must
   verify the authenticated user owns or has permission for that resource.
-- **Short-lived tokens.** JWTs should expire in ≤15 minutes. Use refresh
-  tokens (httpOnly, secure, same-site) for session continuity.
+- **Short-lived tokens.** Configure JWT expiry as short as practical in
+  your auth provider (target ≤15 minutes; some providers default to
+  1 hour — reduce if the provider supports it). Use refresh tokens
+  (httpOnly, secure, same-site) for session continuity. If the auth
+  provider doesn't support custom JWT expiry, document this limitation
+  in project CLAUDE.md and compensate with server-side revocation checks
+  on sensitive operations.
 - **Server-side session validation.** Never trust a JWT's claims without
   checking revocation status for sensitive operations.
 - **Principle of least privilege.** Give each client/role only the
@@ -220,7 +268,22 @@ things go wrong.
 
 - **HTTPS everywhere.** No exceptions.
 - **Rate limiting** on all public endpoints. Enforce per-IP and
-  per-authenticated-user limits. Return 429 with `Retry-After` header.
+  per-authenticated-user limits. Use sliding window or token bucket
+  algorithm. Return 429 with `Retry-After` header and include
+  `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`
+  headers. Recommended: `rate-limiter-flexible` (Node.js) or Vercel/
+  Netlify edge-level rate limiting. Sensible defaults: 100 req/min
+  for general endpoints, 10 req/min for auth endpoints (login,
+  signup, password reset).
+  **Behind a reverse proxy or CDN:** rate limit on the real client IP
+  (`X-Forwarded-For`, `CF-Connecting-IP`), not the proxy's IP. Only
+  trust these headers from known proxy IP ranges — configure the
+  framework's trusted proxy setting. Without this, rate limiting
+  blocks the CDN, not the attacker.
+  **Stateless serverless/edge functions** (Supabase Edge Functions,
+  Vercel Edge, Cloudflare Workers) cannot use in-memory rate limiting —
+  counters reset on every cold start. Use an external store (Upstash
+  Redis, database counter, KV store) for rate limit state.
 - **CORS** — explicit allowed origins. Never `*` in production.
 - **CSRF** protection on all state-changing operations using cookies.
 - **Request size limits.** Enforce max body size to prevent abuse.
@@ -230,10 +293,82 @@ things go wrong.
 - **Webhook verification.** Verify the signature/HMAC of every incoming
   webhook before processing. Never trust the payload without verifying
   it came from the expected sender.
+- **SSRF prevention.** If a feature fetches URLs provided by users
+  (webhooks, image imports, link previews, PDF generation from URLs):
+  validate the URL scheme (allow only `https:`), resolve the hostname
+  and block private/internal IP ranges — both IPv4 (127.0.0.0/8,
+  10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 169.254.0.0/16) AND
+  IPv6 (`::1`, `fc00::/7`, `fe80::/10`). Set strict timeouts and
+  never follow redirects to internal addresses. Use an allowlist
+  when possible rather than a denylist.
+  **DNS rebinding defense:** resolve the hostname, validate the IP,
+  then connect to that specific resolved IP — don't let the HTTP
+  library re-resolve. An attacker's domain can return a public IP on
+  the first lookup (passing validation) then `127.0.0.1` on the
+  second (when the connection is made). Consider `ssrf-req-filter`
+  or equivalent library that handles this.
+
+### WebSocket / Real-Time Security
+
+For projects using WebSockets, Supabase Realtime, or Server-Sent Events:
+- **Authenticate on connection.** Verify the user's token when the
+  WebSocket connects, not just on the initial HTTP upgrade. Reject
+  unauthenticated connections immediately.
+- **Validate the `Origin` header** on the WebSocket upgrade request
+  against an allowlist of your domains. CORS does not apply to
+  WebSockets — without origin validation, a malicious page on any
+  domain can open an authenticated WebSocket to your server (Cross-Site
+  WebSocket Hijacking / CSWSH).
+- **Validate every message.** Incoming WebSocket messages are untrusted
+  input — validate with a schema before processing. Never pass raw
+  messages to business logic.
+- **Rate limit per connection.** Prevent message flooding by limiting
+  messages per second per client. Disconnect clients that exceed limits.
+- **Handle stale tokens.** WebSocket connections are long-lived. If the
+  user's session expires, the connection must be terminated or
+  re-authenticated — not left open with expired credentials.
+- **Scope subscriptions.** For Supabase Realtime, use RLS-scoped
+  channels. Never broadcast data to connections that haven't verified
+  access to that data.
+- **Reconnection security.** When a WebSocket reconnects after a
+  network drop, the connection must re-authenticate — never resume
+  with stale credentials. Prevent replay attacks by including a
+  timestamp or nonce in the handshake. Handle message ordering:
+  messages sent during disconnection may arrive out of order or be
+  lost — design for eventual consistency, not guaranteed delivery.
 
 ---
 
 ## Clean Architecture (Hexagonal / Ports & Adapters)
+
+**Complexity threshold:** These architecture patterns apply to projects
+with 10+ entities/tables, 3+ bounded contexts, or complex domain logic
+(calculations, state machines, multi-step workflows). For simpler
+projects (CRUD APIs, ≤5 entities, single domain), the CLAUDE.md
+simplicity mandate wins — use flat module structure, colocate logic
+with routes, skip the layered abstraction. When in doubt, start simple
+and refactor toward architecture when complexity demands it.
+
+**Incremental transition at the 10+ entity threshold.** When a
+flat-module project grows past 10 entities, do NOT big-bang restructure
+everything into Clean Architecture layers. The transition is
+incremental:
+1. Introduce domain boundaries for NEW entities first — any new
+   bounded context gets its own module with domain/application/
+   infrastructure separation from day one.
+2. Move existing entities INTO the new structure as you touch them
+   for feature work or bug fixes. Do not proactively move entities
+   you aren't currently modifying.
+3. Shared utilities and cross-cutting concerns migrate last, once
+   most domain modules are in place.
+4. Allow flat and layered modules to coexist during the transition
+   (typically 2-4 months for a mid-sized project). Document which
+   modules are flat and which are layered in REGISTRY.md.
+5. Big-bang restructuring produces merge conflicts, regression risk,
+   and context churn that outweighs the benefit. The incremental
+   approach takes longer but ships continuously.
+
+For projects that meet the threshold:
 
 - **Domain layer:** Pure business logic. Knows nothing about HTTP, SQL,
   or any framework. Only business rules.
@@ -253,6 +388,11 @@ things go wrong.
 ---
 
 ## Domain-Driven Design
+
+**Same complexity threshold as Clean Architecture above.** For simple
+CRUD projects, use clear naming and basic module separation — skip
+aggregate roots, bounded contexts, and value objects until the domain
+is complex enough to justify them.
 
 - **Ubiquitous language:** code names match business terms exactly. If the
   business says "Client," the code says `Client`, not `User`.
@@ -296,6 +436,149 @@ things go wrong.
 
 ---
 
+## AI Integration
+
+When any backend endpoint calls an LLM provider, generates embeddings,
+retrieves from a vector store, or exposes tools to an agent, these
+rules apply in addition to `ai-features.md` and `ml-ai-agents.md`.
+
+### Prompt Construction
+
+- **Prompts are code.** Store in a versioned registry (a `/prompts/`
+  directory with git history, or a database table with schema), not
+  inline string concatenation. Every prompt has a version identifier
+  and a regression test set. Track in REGISTRY.md under AI Prompts.
+- **Never concatenate user input into system prompts.** User input
+  goes in user-role messages or wrapped content blocks with clear
+  structural delimiters. Delimiters reduce injection risk but do not
+  eliminate it — assume any user content is potentially adversarial.
+- **Context assembly is access-control-sensitive.** When building a
+  prompt from retrieved documents, database rows, or tool outputs,
+  apply the same authorization checks as if the content were being
+  returned to the user directly. The LLM surfaces whatever is in
+  context. Minimum-necessary retrieval is not optional — pulling
+  entire records "in case the AI needs context" violates minimum
+  necessary for PHI and is a reportable HIPAA breach regardless of
+  whether the user sees the extra data.
+- **Using service-role or admin credentials in an agent context**
+  violates per-user access control regardless of RLS. The agent
+  accesses data the user could not directly access. If service-role
+  usage is unavoidable, it must be tracked in REGISTRY.md admin-bypass
+  column, require Tier A approval, and trigger canary extension to
+  cover the new endpoint.
+
+### Tool Use and Agent Endpoints
+
+- **Every tool definition is an API contract.** Tool input schemas
+  must be strict (zod, pydantic, or equivalent). Reject unexpected
+  fields. Validate types, ranges, and domain constraints. A tool
+  accepting `path: string` must validate the path is within an
+  allowlist before filesystem access.
+- **Tool permission scoping.** Tools an agent can call must be scoped
+  to the minimum necessary capability AND to the authenticated user's
+  permissions. An agent helping User A does not have access to User
+  B's data even if the tool implementation could retrieve it.
+- **Audit every tool call** with: who triggered it, which tool, what
+  arguments, what result, timestamp. This is the agentic equivalent
+  of audit logging for database mutations.
+
+### Agent Tool Implementation — Command Injection Prevention
+
+This is the single most exploited pattern in agentic apps. It applies
+regardless of how the tool is framed semantically — "run tests",
+"execute query", "fetch URL", "process file" — if the implementation
+spawns a subprocess, calls a shell, or constructs a query string, the
+injection risk is live.
+
+- **Never pass tool call arguments to a shell.** Use `execFile` or
+  `spawn` with an explicit argument array, not `exec` with string
+  interpolation. The shell is the vulnerability; removing it removes
+  the class of attack.
+
+  ```
+  Wrong:  exec(`npm test -- ${filter}`)
+  Right:  execFile('npm', ['test', '--', filter])
+  ```
+
+- **Never interpolate tool arguments into SQL.** Use parameterized
+  queries. The ORM is not a substitute for parameterization — verify
+  the ORM actually parameterizes for the code path you're using.
+- **Never construct file paths by concatenation.** Use `path.resolve`
+  against an allowlisted base directory, then verify the resolved
+  path starts with the base directory. This catches `../` traversal
+  and symlink escapes.
+
+  ```javascript
+  const base = path.resolve(projectDir);
+  const resolved = path.resolve(base, userProvidedPath);
+  if (!resolved.startsWith(base + path.sep)) {
+    throw new Error('Path traversal attempt');
+  }
+  ```
+
+- **Never trust a tool argument because it was "validated as a string."**
+  `filter = "test.ts; rm -rf /"` is a valid string. Validation must
+  check against the actual constraint — allowed characters, length,
+  format, allowlist — not just the type.
+- **URL arguments go through `new URL()` and scheme allowlist.** Reject
+  `javascript:`, `data:`, `file:`, `vbscript:`, and anything not in
+  the allowlist. This applies to `shell.openExternal`, `fetch()`,
+  HTTP clients, and any URL-accepting tool.
+- **Layer 2 review on every tool implementation** explicitly checks:
+  "Does this tool's implementation spawn a subprocess, construct SQL,
+  build a path, or dereference a URL? If yes, is each one using the
+  safe API?" This is the reviewer's non-skippable question for any
+  code that implements an agent-callable tool.
+
+### Streaming Responses
+
+- **Authenticated streaming endpoints use `fetch` with ReadableStream
+  or WebSocket, not native `EventSource`.** EventSource does not
+  support custom headers — only cookies — and unauthenticated streaming
+  endpoints are open doors to your AI budget.
+- **Stream timeouts are mandatory.** If no token is received for N
+  seconds (default 10), abort the stream and return "response
+  interrupted" with a retry option. Hanging streams accumulate
+  connection handles and eventually exhaust the server pool.
+- **Stream cancellation must propagate.** When the client disconnects,
+  the server must abort the upstream LLM call — otherwise you pay
+  for tokens the user will never see. Use `AbortController` or the
+  equivalent in your HTTP client.
+
+### Conversation State
+
+- **Server-side conversation storage only.** Clients send only the
+  new message plus a conversation ID. Never trust client-sent history.
+- **Conversation IDs are IDOR targets.** Every request verifies the
+  authenticated user owns the conversation. Use UUIDs, not sequential
+  IDs.
+- **Multi-tenant conversation keys include tenant scope.** A user in
+  both Tenant A and Tenant B must have separate conversation histories
+  per tenant. The cache or store key is `(tenantId, userId,
+  conversationId)`, never just `userId` or `conversationId`.
+- **Chat history is PII.** Encryption at rest, retention policy
+  documented in SPEC.md, user-initiated deletion, account-deletion
+  cascade, and provider-side retention awareness — local deletion
+  does not delete from LLM provider logs. Verify provider retention
+  terms and propagate deletion where the provider supports it.
+
+### Cost and Reliability
+
+- **Per-tenant cost ceilings, not just per-user.** A single abusive
+  tenant with many users can burn a day's budget in an hour. Enforce
+  cost caps at both levels.
+- **Circuit breaker on LLM calls.** After N consecutive failures
+  (default 3), stop calling for M seconds (default 30). Do not send
+  100 users' requests into a dead API. Circuit breaker state is
+  per-provider, not per-endpoint — if OpenAI is down, all OpenAI
+  endpoints trip together, not each endpoint independently discovering
+  the outage.
+- **Kill switch.** A server-side config flag that disables AI features
+  without a deploy. Required for every AI feature. Tested quarterly
+  as part of the health check.
+
+---
+
 ## Caching
 
 - **Cache at the right layer.** Edge/CDN for static assets and public
@@ -316,7 +599,10 @@ things go wrong.
 
 Every production service must include:
 - **Structured logging** (NOT `console.log`) with context: request ID,
-  user ID, action, result, duration.
+  user ID, action, result, duration. Use JSON format for machine
+  parseability. Recommended libraries: `pino` (Node.js — fast, JSON-
+  native), `structlog` (Python). Every log entry should contain at
+  minimum: `timestamp`, `level`, `message`, `requestId`, `service`.
 - **Correlation IDs.** Generate a unique ID per request, propagate
   through all downstream calls, include in every log entry and error
   response.
@@ -416,6 +702,26 @@ Every production service must include:
   never expose storage credentials to the client.
 - Check Context7 for Supabase SDK patterns before implementing.
 
+### Supabase Security Specifics
+
+- **`getSession()` vs `getUser()`.** `getSession()` validates the JWT
+  locally (fast, no network call) — use in middleware for route
+  protection. `getUser()` makes a server call that checks revocation
+  (slower, authoritative) — use in server actions and API routes for
+  sensitive operations. Document the gap: revoked sessions retain access
+  on protected routes for up to JWT_EXPIRY seconds.
+- **Configure JWT expiry** in Dashboard > Authentication > JWT Expiry.
+  Supabase defaults to 1 hour. Reduce if the provider supports it.
+  Compensate with server-side revocation checks on sensitive operations.
+- **Service role canary test.** Every server action or API route that
+  uses `service_role` key must have a canary test: call the endpoint
+  with a regular (non-admin) user token and assert 403. Service role
+  bypasses ALL RLS — a single exposed endpoint negates the entire
+  RLS layer.
+- **Never log raw Supabase error objects.** They may contain connection
+  strings or the service role key in their context. Extract and log
+  only: error message, error code, and stack trace.
+
 ---
 
 ## Next.js Server Patterns
@@ -423,8 +729,10 @@ Every production service must include:
 When working in a Next.js App Router project:
 - **Server Actions for mutations.** Form submissions, data creation,
   updates, and deletes should use server actions — not API routes.
-  Server actions are simpler, type-safe, and don't require manual
-  fetch/error/loading handling.
+  Server actions are type-safe and colocated with components, but
+  **they are publicly callable endpoints** — they require the same auth
+  checks, permission verification, and input validation as API routes.
+  Do not treat colocated code as implicitly secure.
 - **API routes (`route.ts`) for webhooks, external integrations, and
   endpoints consumed by non-Next.js clients.** If only your own frontend
   calls it, use a server action instead.
@@ -433,6 +741,21 @@ When working in a Next.js App Router project:
   own frontend — that's an unnecessary round-trip.
 - **Never import server-only code in client components.** Use the
   `server-only` package to enforce the boundary at build time.
+- **ISR caching safety.** Pages using Incremental Static Regeneration
+  (ISR) must serve identical content for ALL users. Never ISR a page
+  that checks auth, displays role-conditional content, or shows
+  draft/preview content. Role-specific pages must use dynamic rendering
+  (`no-store`). Cached admin views served to public visitors is a data
+  leak.
+- **ISR cache poisoning via CMS.** ISR pages serving CMS content
+  inherit CMS vulnerabilities. If the CMS data source is compromised
+  (stored XSS in a CMS field), poisoned content caches until
+  revalidation. Implement: on-demand revalidation API for content
+  updates, cache purge mechanism for emergencies, and sanitize CMS
+  content before rendering (not just before storage).
+- **Never log raw error objects from database clients or auth providers**
+  — they may contain connection strings or service keys in their
+  context. Extract and log only: error message, error code, stack trace.
 
 ---
 
@@ -454,11 +777,8 @@ Never do any of the following:
 - Process large datasets one row at a time — use batch operations
 - Skip database constraints and rely solely on app-level validation
 - Create API routes in Next.js for mutations your own frontend calls
-  — use server actions. **But treat server actions as public endpoints.**
-  They are callable by anyone with the action ID — not private just
-  because they're co-located with the component. Every server action
-  must validate auth, check permissions, and validate input with the
-  same rigor as an API route.
+  — use server actions (see Next.js Server Patterns above for security
+  requirements)
 - **Sequential awaits for independent operations** — if two async calls
   don't depend on each other's result, use `Promise.all` (JS) or
   `asyncio.gather` (Python). AI code is 8x more likely to make

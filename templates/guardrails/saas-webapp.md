@@ -2,9 +2,14 @@
 
 Extends global `~/.claude/GUARDRAILS.md`. These rules are additive.
 
+> **Disclaimer:** These guardrails reduce risk but do not constitute
+> regulatory compliance. For regulated industries (fintech, healthcare,
+> etc.), engage a qualified compliance professional to review the
+> generated project guardrails and the application output. Awareness of
+> regulations is not the same as compliance with them.
+
 ## Applicable Regulations
-See global Privacy & Regulatory Awareness for baseline (PIPEDA, PIPA BC,
-CASL). Additionally for SaaS:
+See global Privacy & Regulatory Awareness for your jurisdiction baseline. Additionally for SaaS:
 - GDPR if serving EU users
 - CCPA/CPRA if serving California users
 - SOC 2 if enterprise clients require compliance audits
@@ -16,7 +21,12 @@ CASL). Additionally for SaaS:
   Every query, API response, and UI state must be scoped to the
   authenticated user's tenant/organization.
 - Test tenant isolation: write integration tests that verify cross-tenant
-  data access fails.
+  data access fails. **Multi-tenant canary must test the full matrix:**
+  same-tenant access succeeds, cross-tenant access fails, removed member
+  access fails, tenant admin vs member permissions. For apps with BOTH
+  RLS and application-level RBAC, verify both layers agree — test
+  (role × operation × RLS policy) combinations. A silent divergence
+  between RLS and application-level permissions is a privilege escalation.
 - Row Level Security (Supabase) or equivalent query scoping on every
   table that holds tenant data.
 - **Every database query touching tenant data must include tenant
@@ -43,8 +53,9 @@ CASL). Additionally for SaaS:
 
 ## Data Export & Portability
 
-- Users must be able to export their data (GDPR Article 20, PIPEDA
-  right of access). Never build data models that make export impossible.
+- Users must be able to export their data (required by GDPR, PIPEDA, CCPA,
+  and most privacy regulations). Never build data models that make export
+  impossible.
 - Account deletion must be implementable. Flag any architecture
   decisions that would make user data deletion impractical.
 
@@ -60,7 +71,11 @@ CASL). Additionally for SaaS:
 ### Vercel
 - Environment variables per deployment (preview vs production)
 - Never expose server-side env vars to the client (`NEXT_PUBLIC_` prefix
-  only for client-safe values)
+  only for client-safe values). **Add a canary test** that builds the
+  production bundle and greps output files for known server-side env var
+  names (`SUPABASE_SERVICE_ROLE`, `DATABASE_URL`, `STRIPE_SECRET`).
+  `gitleaks` scans git history, not built artifacts — a secret injected
+  via environment config bypasses git-based scanning entirely.
 - Edge middleware for auth checks and redirects
 
 ### Railway

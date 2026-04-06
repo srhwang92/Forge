@@ -84,17 +84,18 @@ use kebab-case liquid filenames"]
 
 ## Workflow Overrides
 
-**Ceremony level:** [full | standard | light | minimal]
+**Ceremony level:** [standard | light | minimal]
 <!-- Presets — pick one, customize if needed:
-  full     — All layers on every task, Layer 3 per-feature, Playwright, all gates (high-stakes client/regulated)
-  standard — All layers on non-trivial tasks, Layer 3 pre-merge, Playwright on UI, all gates (default)
-  light    — Layer 1 only, security/destructive gates only, skip Playwright (personal projects, prototypes)
+  standard — Layer 1 + Layer 2 on non-trivial tasks, Playwright on UI, all gates (default for production)
+  light    — Layer 1 only, security/destructive gates only, skip Playwright (prototypes, internal tools)
   minimal  — Run tests only, no approval gates except destructive and security ops (one-off scripts, experiments)
+  For high-stakes work, keep `standard` and add optional cross-model
+  adversarial review at branch boundaries (see README).
 -->
 
 [Additional overrides beyond ceremony level, if any. Examples:
-"Skip Layer 3", "Use feature-dev instead of Superpowers",
-"Small codebase — no subagents"]
+"Skip Layer 2 for this project", "Use feature-dev instead of
+Superpowers", "Small codebase — no subagents"]
 
 ## Applied Guardrail Templates
 

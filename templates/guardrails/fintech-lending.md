@@ -2,9 +2,14 @@
 
 Extends global `~/.claude/GUARDRAILS.md`. These rules are additive.
 
+> **Disclaimer:** These guardrails reduce risk but do not constitute
+> regulatory compliance. For regulated industries (fintech, healthcare,
+> etc.), engage a qualified compliance professional to review the
+> generated project guardrails and the application output. Awareness of
+> regulations is not the same as compliance with them.
+
 ## Applicable Regulations
-See global Privacy & Regulatory Awareness for baseline (PIPEDA, PIPA BC,
-CASL). Additionally for fintech/lending:
+See global Privacy & Regulatory Awareness for your jurisdiction baseline. Additionally for fintech/lending:
 - GLBA (Gramm-Leach-Bliley Act) — financial data privacy
 - ECOA (Equal Credit Opportunity Act) — fair lending
 - TILA (Truth in Lending Act) — disclosure requirements
@@ -25,7 +30,19 @@ CASL). Additionally for fintech/lending:
 - **Never hardcode financial parameters.** Rates, fees, thresholds, and
   limits must come from configuration or database.
 - **Test every calculation with known-answer pairs.** Minimum 3 test
-  cases with manually verified expected outputs per formula.
+  cases with manually verified expected outputs per formula. **At least
+  one test case must use values that expose floating-point rounding
+  errors:** $33.33, $66.67, $0.10 + $0.20, or values near cent
+  boundaries. If all test inputs are round numbers ($100, $50), the
+  tests are insufficient — they pass with both correct (integer cents)
+  and incorrect (floating point) implementations.
+  **For amortization or compound interest:** include a test case
+  verified against an independent reference implementation (a known-
+  correct calculator, not Claude's own math). Rounding errors compound
+  over 360 monthly payments — a per-payment discrepancy of $0.01
+  becomes $3.60 over a 30-year mortgage. The "manually verified"
+  outputs must come from an external source, not the same model that
+  wrote the code.
 
 ## Fair Lending & Anti-Discrimination
 

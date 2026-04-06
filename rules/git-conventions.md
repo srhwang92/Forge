@@ -68,9 +68,15 @@ Omit scope for cross-cutting changes: `chore: update deps`
 
 ## Cursor ↔ Claude Code Boundary
 
-Git operations (branch, commit, merge, PR) happen in Cursor IDE only.
-Claude Code does NOT create branches, switch branches, push, or
-force-push.
+Claude Code CAN: `git add`, `git commit` (for checkpoints and staging
+work), `git status`, `git diff`, `git log`.
+
+Claude Code does NOT: create branches, switch branches, push, pull,
+force-push, merge, rebase, or create PRs. These happen in the IDE only.
+
+This means Claude Code commits locally as part of its checkpoint workflow
+(GUARDRAILS.md requires checkpoints before risky operations) but never
+moves commits to remote or changes branch structure.
 
 **Handoff protocol:**
 - **TO Claude Code:** State what changed since last session, which

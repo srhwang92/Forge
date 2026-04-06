@@ -2,9 +2,14 @@
 
 Extends global `~/.claude/GUARDRAILS.md`. These rules are additive.
 
+> **Disclaimer:** These guardrails reduce risk but do not constitute
+> regulatory compliance. For regulated industries (fintech, healthcare,
+> etc.), engage a qualified compliance professional to review the
+> generated project guardrails and the application output. Awareness of
+> regulations is not the same as compliance with them.
+
 ## Applicable Regulations
-See global Privacy & Regulatory Awareness for baseline (PIPEDA, PIPA BC,
-CASL). Additionally for static/marketing sites:
+See global Privacy & Regulatory Awareness for your jurisdiction baseline. Additionally for static/marketing sites:
 - GDPR if the site is accessible to / targets EU visitors
 - Accessibility: ADA, AODA, EAA for public-facing websites
 - Competition Act / FTC for advertising claims
@@ -26,9 +31,10 @@ CASL). Additionally for static/marketing sites:
 - **Every form that collects personal data needs a privacy notice.**
   At minimum: what data is collected, why, how it's stored, and how
   to request deletion. Link to full privacy policy.
-- **Email collection requires CASL-compliant consent.** Separate opt-in
+- **Email collection requires explicit consent.** Separate opt-in
   for marketing emails. Express consent (not implied). Record the
-  consent timestamp and method.
+  consent timestamp and method. This satisfies CASL, CAN-SPAM, and
+  GDPR requirements.
 - **Never store form submissions in plaintext files or email.** Use a
   database or form service with appropriate access controls.
 - Contact form submissions containing PII must be handled per the

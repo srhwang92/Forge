@@ -23,8 +23,9 @@ generic default from these rules. These rules govern *how* to implement;
 - Never use `any`. Use `unknown` + type guards, or define the actual type.
 - No `@ts-ignore` or `@ts-expect-error` without a comment explaining why
   and a TODO to remove it.
-- No enums. Use `as const` objects with derived union types instead —
-  enums have runtime behavior and break tree-shaking.
+- No TypeScript enums. Use `as const` objects with derived union types
+  instead — TS enums have runtime behavior and break tree-shaking.
+  (Python enums are idiomatic and fine — this rule is TypeScript-specific.)
 - No `as` type assertions unless annotated with why — prefer type
   narrowing with guards.
 - Runtime validation at every API boundary (zod, valibot, or tRPC).
@@ -175,17 +176,93 @@ component from the start — never retrofitted.
   sanitization (DOMPurify). Flag for the project lead's review.
 - Sanitize all user-generated content before rendering — even in
   attributes, URLs, and CSS values
+- **Context-specific output encoding.** Sanitization is NOT one-size-
+  fits-all. HTML encoding does not prevent injection in JavaScript, CSS,
+  URL, or SQL contexts. When user input appears in different contexts,
+  apply the correct encoding for each: HTML entities for HTML content,
+  JavaScript string escaping for `<script>` contexts, URL encoding for
+  query parameters, CSS escaping for style values. Never inject user
+  input into `<script>` blocks via template interpolation — use data
+  attributes or JSON serialization with proper escaping instead.
+  **Tagged template literals** (CSS-in-JS like `css\`color: ${input}\``,
+  SQL tagged templates like Prisma's `$queryRaw`) are also injection
+  contexts — user input can break out of the value position. Validate
+  and sanitize before interpolation in any tagged template.
 - Never construct URLs from user input without validation
-- CSP (Content Security Policy) headers: no `unsafe-inline` or
-  `unsafe-eval` in production
+- **CSP (Content Security Policy):** Define a strict policy per project.
+  At minimum: no `unsafe-inline` or `unsafe-eval` in production. For
+  inline scripts required by frameworks (Next.js), use nonce-based CSP
+  (`'nonce-{random}'` regenerated per request). For third-party scripts
+  (analytics, chat widgets), add specific domain allowlists rather than
+  wildcards. Set `report-uri` or `report-to` to capture violations in
+  production — CSP errors are invisible without reporting. Start with
+  `Content-Security-Policy-Report-Only` during development, promote to
+  enforcing before launch.
 - External links with `target="_blank"` must include
   `rel="noopener noreferrer"`
 - Third-party scripts: audit before adding, load via `async`/`defer`,
   prefer self-hosted over CDN when possible
 - **SRI (Subresource Integrity):** if loading scripts or styles from a
   CDN, add `integrity` hashes to prevent execution of tampered resources
-- Never store sensitive data in localStorage — use httpOnly cookies or
-  server-side sessions
+- **SPA auth token storage.** Never store tokens in localStorage
+  (accessible to any script, persists across tabs, XSS-exfiltrable).
+  Preferred: httpOnly secure same-site cookies managed by the backend.
+  If cookies aren't feasible (cross-origin API), use in-memory storage
+  (cleared on tab close) with a refresh token in a httpOnly cookie.
+  Document the chosen pattern in project DECISIONS.md.
+- **Stored XSS prevention.** User-generated content stored in the
+  database can contain scripts that execute when rendered. Sanitize
+  content BOTH on input (before storage) and on output (before
+  rendering). For rich text editors (Tiptap, Slate, Lexical): configure
+  the editor's allowlist to permit only safe HTML elements and
+  attributes. Sanitize the HTML output with DOMPurify before storage
+  AND before rendering. **Render-time sanitization is non-negotiable**
+  — storage-time is defense-in-depth. If a sanitizer bug is later
+  patched, render-time sanitization catches previously stored malicious
+  content. For SVG uploads: SVGs can contain `<script>`
+  tags and event handlers — re-encode through a sanitizer or convert
+  to raster format before serving.
+- **AI and CMS output sanitization config.** When rendering HTML or
+  Markdown produced by an LLM or by a CMS rich-text field, the default
+  DOMPurify config is too permissive. Use this strict baseline:
+
+  ```javascript
+  const AI_OUTPUT_CONFIG = {
+    ALLOWED_TAGS: [
+      'p', 'br', 'strong', 'em', 'u', 's', 'code', 'pre',
+      'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+      'ul', 'ol', 'li', 'blockquote',
+      'a', 'img', 'table', 'thead', 'tbody', 'tr', 'td', 'th',
+    ],
+    ALLOWED_ATTR: ['href', 'src', 'alt', 'title'],
+    ALLOWED_URI_REGEXP: /^(?:https?|mailto):/i,
+    FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed', 'form'],
+    FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'style'],
+    KEEP_CONTENT: false,
+  };
+  const sanitized = DOMPurify.sanitize(aiOutput, AI_OUTPUT_CONFIG);
+  ```
+
+  `ALLOWED_URI_REGEXP` rejects `javascript:`, `data:`, `vbscript:`,
+  and `file:` schemes — without this, a sanitized `<a href="javascript:...">`
+  still executes. `style` is forbidden because CSS can exfiltrate data
+  via `background-image` URLs and can cover the viewport with
+  attacker-controlled content. `iframe`, `object`, `embed` are
+  forbidden unconditionally — if a feature legitimately needs them,
+  create a separate config with explicit `src` allowlisting and
+  document in DECISIONS.md. For Markdown rendering: configure the
+  renderer (marked, remark) with `sanitize: true` OR pipe rendered
+  HTML through this config, never both with inconsistent configs.
+  Test the config against an XSS cheat sheet corpus on every update.
+- **Cross-origin communication.** For OAuth popups, embedded widgets,
+  or iframe integrations: always validate `event.origin` AND
+  `event.source` in `postMessage` handlers against an explicit
+  allowlist — verifying only origin is insufficient if a legitimate-
+  origin page has been compromised. Never use `*` as the target origin
+  when sending messages. For iframe communication, prefer the
+  `MessageChannel` API (direct port-to-port, no broadcast) over
+  `window.postMessage` when possible. For OAuth flows, use the
+  Authorization Code flow with PKCE — never the implicit flow.
 - **Source maps:** upload to error tracking service (Sentry) during build.
   Never deploy source maps to public-facing URLs — delete from output
   after upload.
@@ -244,7 +321,17 @@ Targets: **INP ≤200ms** (p75), **LCP ≤2.5s**, **CLS ≤0.1**
   relative (`../../components/Button`) and alias (`@/components/Button`)
   imports in the same file or across the same project.
 - Audit barrel files (`index.ts` re-exports) — they can break
-  tree-shaking. Only re-export what's part of the public API.
+  tree-shaking when overused. **Barrels are appropriate at module
+  boundaries** (the public API of a feature folder), not at every
+  directory level. A module-level `index.ts` that re-exports named
+  exports from within its own feature is fine and expected — it
+  defines the module's public interface. **Deep barrel chains**
+  (barrels that re-export from other barrels that re-export from
+  other barrels) are the tree-shaking problem, not single-level
+  public-API barrels. Rule of thumb: one barrel per feature module,
+  no nested barrels. Single-export files (e.g., `formatDate.ts`
+  named for its export per code-voice rules) are fine alongside
+  barrels — the conflict is only with deep nesting.
 - Prefer packages that ship ESM and support tree-shaking.
 
 ---

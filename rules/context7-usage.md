@@ -12,7 +12,9 @@ Use it strategically — not as a first resort and not as a crutch.
 
 Always follow this sequence:
 1. `resolve-library-id` — get the Context7 library ID from the package
-   name. Do this once per library per session, not per query.
+   name. Do this once per library per **uncompacted context window**,
+   not per query. Compaction wipes the cache — after compaction,
+   re-resolve any library being actively worked on.
 2. `query-docs` — fetch specific documentation using the resolved ID.
    Request only the section you need, not the full library docs.
 
@@ -58,8 +60,10 @@ Always follow this sequence:
 
 ## Token Discipline
 
-- **Resolve library IDs once per session.** Cache mentally — don't
-  re-resolve the same library multiple times.
+- **Resolve library IDs once per uncompacted context window.** Cache
+  mentally — don't re-resolve the same library multiple times within
+  one context window. After compaction, the mental cache is lost;
+  re-resolve any library being actively worked on.
 - **Delegate to subagents** when doing exploratory research across
   multiple libraries. Keep lookup tokens out of the main context.
 - **Don't use Context7 to confirm what you already know.** If you're

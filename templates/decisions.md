@@ -5,11 +5,23 @@
 > what was rejected and why, what assumptions must hold, and how to verify.
 >
 > Updated when non-trivial decisions are made, not at session end.
-> Old decisions superseded by newer ones are marked `[SUPERSEDED]`.
-> During Tier 2 reads, skip superseded entries.
+>
+> **Superseded decisions use a visually distinct format** to prevent
+> skim-reading confusion. They start with `~~[SUPERSEDED]~~` (visible
+> strikethrough in rendered markdown) and are followed by a blank line
+> then `> **DO NOT IMPLEMENT — superseded by [newer-decision]**` as a
+> blockquote warning. During Tier 2 reads, skip superseded entries.
+> Human readers skimming the file must never mistake a superseded
+> decision for current guidance.
 >
 > Domain knowledge (terminology, business rules, regulatory constraints)
 > goes at the top of each domain section.
+>
+> **Standard domains** (use these names for consistency; add project-
+> specific domains as needed): Auth, Data Model, API, Payments/Billing,
+> UI/UX, Infrastructure, Testing, Performance, Security, Integrations.
+> Using consistent names ensures Tier 2 reads find the right section
+> after compaction.
 
 ---
 
@@ -28,7 +40,12 @@
 - **Verify:** [runnable command or test, not a prose claim]
 - **Date:** [YYYY-MM-DD]
 
-**[SUPERSEDED by: newer-decision-title] Old decision title**
+~~**[SUPERSEDED]** Old decision title~~
+
+> **DO NOT IMPLEMENT — superseded by [newer-decision-title].**
+> Preserved for history only. If you are implementing based on this
+> entry, stop and read the current decision instead.
+
 - [original content preserved for history]
 - **Date:** [YYYY-MM-DD]
 -->

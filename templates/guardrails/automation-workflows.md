@@ -2,9 +2,14 @@
 
 Extends global `~/.claude/GUARDRAILS.md`. These rules are additive.
 
+> **Disclaimer:** These guardrails reduce risk but do not constitute
+> regulatory compliance. For regulated industries (fintech, healthcare,
+> etc.), engage a qualified compliance professional to review the
+> generated project guardrails and the application output. Awareness of
+> regulations is not the same as compliance with them.
+
 ## Applicable Regulations
-See global Privacy & Regulatory Awareness for baseline (PIPEDA, PIPA BC,
-CASL). Additionally for automations:
+See global Privacy & Regulatory Awareness for your jurisdiction baseline. Additionally for automations:
 - GDPR, CCPA/CPRA based on data subjects' geography
 - Platform ToS for all integrated services
 
