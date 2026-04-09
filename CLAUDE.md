@@ -187,7 +187,6 @@ code. Detailed standards load automatically from `rules/*.md`:
 - **Never hardcode:** every changeable/reusable value is a token,
   variable, constant, or config entry.
 - **Incremental:** smallest working piece → verify → next piece.
-  Edit surgically; never regenerate entire files for small fixes.
 - **Prohibited:** 500+ line files without asking, abstractions for
   future flexibility, duplicated logic, `console.log` in production,
   generic errors, deprecated APIs, hallucinated packages.
@@ -197,6 +196,38 @@ code. Detailed standards load automatically from `rules/*.md`:
   On conflict (e.g., Forge wants layered architecture but template is
   flat), document in DECISIONS.md with "Template vs Forge" tag and
   default to following the template for existing code.
+
+### Edit Strategy
+
+Before the first edit to an existing file, decide: surgical or rewrite.
+The criterion is **entanglement**, not file size.
+
+**Surgical edits** (`str_replace` per change) suit one targeted fix
+or several independent changes to unrelated parts of a file. Any size
+file. 20 independent edits to a 2,000-line file are still surgical.
+
+**Rewrite** (read the file, reason about all changes in one pass,
+write the full file back) when the changes are entangled:
+
+- Renaming a symbol that appears in multiple places in the same file
+- Changing a function signature plus its callers in the same file
+- Restructuring a section, reordering, or changing hierarchy
+- Changing a type or interface plus its usages in the same file
+- Any change where intermediate states would be syntactically or
+  semantically broken
+
+**Default to rewrite for 5+ pending edits in the same file** unless
+you can confirm each edit is fully independent of the others. Partial-
+failure states on sequential surgical edits leave the file worse than
+either the starting or target state.
+
+**Mid-task recovery.** If `str_replace` calls are failing on `old_str`
+uniqueness, or you're on the 4th retry of the same edit, stop and
+switch to rewrite. That's the signature of entanglement the upfront
+assessment missed. Strategy switches are expected when the initial
+assessment was wrong — they're not failures, and the sunk cost of
+earlier edits shouldn't drive the decision. The rewrite cost is
+bounded by file size; the thrashing cost is unbounded.
 
 ---
 
