@@ -1,12 +1,10 @@
 # Global Defaults
 
-<!-- Customize this section for your role and setup -->
-Multi-client development — each project has its own CLAUDE.md that
-extends these defaults.
+<!-- Customize the two lines below for your role, setup, and platform.
+     Windows: specify PowerShell. macOS/Linux: specify bash/zsh. -->
 
-**Platform:** Configure your OS and shell in the section below.
-<!-- Example for Windows: PowerShell-compatible commands only. -->
-<!-- Example for macOS/Linux: Standard bash/zsh commands. -->
+Multi-client development — each project extends these defaults via
+its own CLAUDE.md. **Platform:** [configure].
 
 ---
 
@@ -17,8 +15,8 @@ non-trivial, run the project interview in
 `~/.claude/templates/interview.md` verbatim. Seven grouped questions
 covering Purpose/Users, Stack, Data Sensitivity, **AI Features
 (mandatory)**, Scope/Constraints, Existing Context, Design/Brand.
-Missing any question is a process failure, not a judgment call.
-Answers flow into `project-claude.md`, SPEC.md, and DECISIONS.md.
+Missing any question is a process failure. Answers flow into
+`project-claude.md`, SPEC.md, and DECISIONS.md.
 
 If the AI Features answer is yes, maybe, or "not yet but eventually":
 load `~/.claude/templates/guardrails/ai-features.md` immediately. AI
@@ -27,16 +25,11 @@ question and re-loads the template.
 
 After the interview, proceed to **Project Setup** before writing code.
 
-If something is ambiguous — stop and ask. Do not fill in blanks with
-reasonable defaults. The only exceptions are mechanical tasks with no
-decision points (formatting, linting, running tests as instructed).
-
-**Zero Assumptions vs. Pragmatism — precedence.** Zero Assumptions
-applies to project-level unknowns (stack, users, compliance, data
-sensitivity, architecture). Pragmatism (see `code-voice.md`) applies
-to implementation-level choices (utility library, variable names,
-helper inlining). Heuristic: if getting it wrong needs a rewrite,
-ask; if a 10-minute refactor fixes it, decide.
+**Precedence.** Zero Assumptions applies to project-level unknowns
+(stack, users, compliance, architecture). Implementation-level choices
+(utility libraries, variable names, helper inlining) follow
+`code-voice.md` pragmatism. Heuristic: if getting it wrong needs a
+rewrite, ask; if a 10-minute refactor fixes it, decide.
 
 ---
 
@@ -51,12 +44,6 @@ Never write code before exploring and getting plan approval.
 ## Verification Protocol
 
 Check the project CLAUDE.md for the **ceremony level**. Default: `standard`.
-- **standard**: Layer 1 + Layer 2 on non-trivial tasks, Playwright on
-  UI changes, all gates (default for production work)
-- **light**: Layer 1 only, security/destructive gates only (prototypes,
-  internal tools without sensitive data, static marketing sites)
-- **minimal**: tests only, no gates except destructive/security (scripts)
-
 Security guardrails (GUARDRAILS.md) apply at ALL ceremony levels — see
 the "Always-Active Sections" list in the GUARDRAILS.md preamble.
 
@@ -70,77 +57,96 @@ the "Always-Active Sections" list in the GUARDRAILS.md preamble.
 | External users, marketing/docs only | `light` |
 | Internal tools, no sensitive data | none |
 
+At `standard`: Layer 1 + Layer 2 on non-trivial, Playwright on UI, all
+gates. At `light`: Layer 1 only, security/destructive gates only.
+At `minimal`: tests only, security/destructive gates only.
+
 **Override rule:** downgrading a floor requires Tier A approval +
 written justification in DECISIONS.md. Regulated floors (fintech,
 healthcare) can be raised but never downgraded.
 
-**Reassess ceremony level when:** project adds financial transactions,
-health data, or auth for the first time; external users are added to
-a previously internal tool; a prototype is promoted to production;
-project adds any AI feature (chat, RAG, embeddings, generation, agents,
-tool use, MCP integration) for the first time, or connects an existing
-AI feature to a new data source. AI additions trigger a full re-read of
-`ai-features.md` AND every industry template already in play — parent
-regulations inherit to AI data flows.
+**Reassess ceremony level when:** the project first adds financial
+transactions, health data, auth, external users, AI features, or
+connects AI to a new data source. AI additions trigger re-read of
+`ai-features.md` plus active industry templates.
 
 Every completed task goes through verification layers.
 
 **Layer 1 — Self-check (every task).** Mechanical facts only:
 - **Impact analysis (before implementation):** read REGISTRY.md
-  dependents + grep imports. Note in STATUS.md. If the target
-  component is NOT in REGISTRY.md, search the filesystem — add it
-  before modifying. For shared components with 20+ dependents,
-  read the REGISTRY dependents list in full + 3-5 representative
-  dependent files (different usage patterns). Full dependent review
-  for breaking API changes = a separate multi-session task.
+  dependents + grep imports. Note in STATUS.md. If the target is NOT
+  in REGISTRY.md, search the filesystem and add it before modifying.
+  Shared components with 20+ dependents: read the full dependents
+  list + 3-5 representative files covering different usage patterns.
 - Tests pass? Run them.
 - Output matches PLAN.md acceptance criteria point by point?
   **Money/auth/user-affecting tasks:** PLAN.md must have ≥3 known-
   answer test cases. Add before implementing, not after.
-- SPEC.md alignment? If the task reveals the spec needs updating —
-  new requirements discovered, edge case found, architecture adjustment
-  — this is expected. Present the change with rationale, get approval
-  (Tier A), then continue. Spec evolution is learning, not failure.
+- SPEC.md alignment? If misalignment surfaces during the task, propose
+  the spec change with rationale and get Tier A approval before
+  continuing.
 - Multi-component task: end-to-end flow works, not just units?
 - Lint/type errors? Run check command.
 - Build succeeds? Run build command.
 - **UI changes + Playwright available:** axe-core audit + screenshots
-  at mobile/desktop. Axe-core catches ~30-40% of a11y issues — not
-  WCAG proof. **If the project has dark mode:** run axe-core in BOTH
-  color schemes — passing in one mode proves nothing about the other.
-  Inherited violations: document in STATUS.md, don't block.
+  at mobile/desktop. If the project has dark mode, run axe-core in
+  BOTH color schemes. Inherited violations: document in STATUS.md,
+  don't block.
 - Missing files that need changing?
 - Created/deleted/renamed component? Update REGISTRY.md. Modified
   `stable` component? Reset to `verified`.
 If any check fails, fix before proceeding. **Exception — cross-cutting
 refactors:** note expected transient failures in PLAN.md with
-`transient:` tag (e.g., "transient: old import paths break until
-migration complete"). Unlisted failures are real bugs — fix immediately.
-All tests must pass at task completion, not just at each intermediate
-step.
+`transient:` tag. Unlisted failures are real bugs — fix immediately.
+All tests must pass at task completion.
 
 **Layer 2 — Subagent review (non-trivial tasks).** Dispatch with ONLY:
 task description, acceptance criteria, changed files. No conversation
-history. Frame: "Find what's wrong." Subagent checks:
-- Semantic correctness (spec gaming), hidden coupling, test integrity
-  (if PLAN.md has known-answer pairs, verify tests match those outputs),
-  DESIGN.md compliance (UI tasks). Uses Sonnet.
-  Workarounds approved by the project lead (marked `// APPROVED:
-  [reason]` in code) should not be flagged as issues.
+history. Frame: "Find what's wrong." Subagent checks semantic
+correctness (spec gaming), hidden coupling, test integrity (if PLAN.md
+has known-answer pairs, verify tests match), DESIGN.md compliance
+(UI tasks). Uses Sonnet. Workarounds approved by the project lead
+(marked `// APPROVED: [reason]` in code) should not be flagged.
 
-**Layer 2 is a structural review, not an independent audit.** The
-subagent shares the main agent's model family and blind spots.
-Fresh context + task-only framing catches different failure modes
-than Layer 1 (spec gaming, missed edges, hidden coupling) but adds
-no independent perspective. For true independent review, use
-cross-model adversarial review (see README, optional) or external
-human review.
+**Layer 2 is structural review, not an independent audit.** The
+subagent shares the main agent's model family and blind spots. For
+true independent review, use cross-model adversarial review (see
+README, optional) or external human review.
 
 **Trivial** (skip Layer 2): renaming, formatting, linting, config
 one-liners, comment edits, import reordering, non-breaking version bumps.
 **Non-trivial** (require Layer 2): anything changing behavior — features,
 bug fixes, logic refactors, API/DB/auth changes, interactive UI, tests.
 When in doubt: non-trivial.
+
+## Phase Boundaries
+
+A phase ends when the last task in the current PLAN.md phase completes
+and its exit criteria are met. Before starting the next phase:
+
+1. **Propose a phase snapshot** using `~/.claude/templates/phase-
+   snapshot.md`. Write to `.claude/snapshots/phase-N.md`. Summary
+   (~10 lines) is read at Tier 1 every session; detail is Tier 2.
+2. **Full REGISTRY.md reconciliation.** Compare component file count
+   against entry count, resolve every entry's path, mark deprecations.
+3. **Prune DECISIONS.md.** Mark superseded entries with
+   `~~[SUPERSEDED]~~` + blockquote warning. Archive if the section
+   exceeds 50 entries.
+4. **Resolve STATUS.md open questions.** Each should be answered
+   (move to DECISIONS.md), deferred to a later phase (tag with phase
+   number), or closed as no longer relevant.
+5. **Update PLAN.md.** Mark current phase complete. Define next
+   phase's exit criteria if not already present.
+
+Don't start next-phase work before the snapshot is written and
+committed. Phase boundaries are the anchor point for session
+reconstruction — skipping a snapshot breaks Tier 1 for every
+subsequent session.
+
+For ship/stable milestones (project going to production), also
+generate `HANDOFF.md` using `~/.claude/templates/handoff.md`.
+
+---
 
 ## Subagent Delegation
 
@@ -281,15 +287,14 @@ session-level working knowledge.
 | `HANDOFF.md` | Human-readable overview + maintenance info (ship milestone) | `templates/handoff.md` |
 
 **Critical rules** (full reasoning in `state-files-reference.md`):
-- REGISTRY.md is updated after every task. It is the primary defense
-  against post-compaction hallucination.
+- REGISTRY.md updated after every task — primary defense against
+  post-compaction hallucination.
 - INVARIANTS.md entries without a canary test are unenforced claims.
 - DECISIONS.md superseded entries use `~~[SUPERSEDED]~~` + blockquote
-  warning to prevent human skim-reading confusion.
-- Logs are append-only. If a secret lands in a log, rotate and
-  archive — never silently edit.
-- Canaries protect invariants universally. When new surfaces ship,
-  existing canaries must extend to cover them in the same task.
+  warning.
+- Logs are append-only. Secrets in logs → rotate and archive.
+- Canaries protect invariants universally. New surfaces extend
+  existing canaries in the same task.
 
 ### Session Recovery — Tiered Reconstruction
 
@@ -308,13 +313,12 @@ After compaction or context loss, complete Tier 1 before writing code.
 10. Latest `.claude/logs/` entry
 11. REGISTRY reconciliation — spot-check 3-5 paths resolve to real
     files. Full reconciliation at phase boundaries.
-12. Memory file integrity — after updating REGISTRY/DECISIONS/INVARIANTS,
-    commit: `git add && git commit -m "chore: update memory files"`.
-    Before compaction: `git diff` on memory files for unintended changes.
-13. If `.claude/in-progress.md` exists — read carefully. Mid-refactor
-    scratchpad state. If tests are failing, check the scratchpad's
-    "expected transient failures" before diagnosing. Do NOT panic-revert
-    without understanding what was in flight.
+12. Memory file integrity — commit REGISTRY/DECISIONS/INVARIANTS
+    updates (`chore: update memory files`). Before compaction: `git
+    diff` on memory files to catch unintended changes.
+13. If `.claude/in-progress.md` exists, read it. Check expected
+    transient failures before diagnosing failing tests. Don't
+    panic-revert without understanding what was in flight.
 
 **Tier 2 — On demand:** relevant DECISIONS.md domain, REGISTRY.md
 component detail, snapshot detail.
@@ -331,28 +335,19 @@ remaining — compact first. If unsure, err toward compacting.
 
 **Pre-compaction validation:**
 1. Spot-check 3 REGISTRY.md paths resolve to real files
-2. **Completeness check:** compare component file count
-   (`find src -name '*.tsx' -o -name '*.ts' | grep -v test | wc -l`)
-   against REGISTRY.md entry count. If files exceed entries by >10%,
-   run full reconciliation before compacting.
+2. Component file count vs REGISTRY.md entry count: if files exceed
+   entries by >10%, run full reconciliation before compacting
 3. INVARIANTS.md canary references exist as test files
 4. STATUS.md open questions are self-contained
 5. `git diff` on memory files — restore from git if truncated
 
 **Standard compaction:** update STATUS.md, append to `.claude/logs/`.
-Preserve: modified files, plan progress, test commands, design refs,
-active SPEC.md decisions.
 
-**Mid-task compaction (any kind).** `.claude/in-progress.md` is the
-single survival mechanism for both intentional and unexpected
-compaction. For any refactor touching 5+ files, maintain this file
-continuously — update it after each sub-step with: what was just
-done, what's next, discoveries made during the work, expected
-transient test failures, design options being considered, and
-decisions not yet made. Before an intentional `/compact`, confirm
-it's current. If compaction fires unexpectedly, this file is all
-that survives. See `rules/state-files-reference.md` for format.
-Delete after the task completes.
+**Mid-task compaction.** `.claude/in-progress.md` is the survival
+mechanism for both intentional and unexpected compaction. For any
+refactor touching 5+ files, maintain this file continuously (see
+`state-files-reference.md` for format). Confirm it's current before
+intentional `/compact`. Delete after the task completes.
 
 ---
 
