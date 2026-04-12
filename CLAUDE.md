@@ -25,11 +25,9 @@ question and re-loads the template.
 
 After the interview, proceed to **Project Setup** before writing code.
 
-**Precedence.** Zero Assumptions applies to project-level unknowns
-(stack, users, compliance, architecture). Implementation-level choices
-(utility libraries, variable names, helper inlining) follow
-`code-voice.md` pragmatism. Heuristic: if getting it wrong needs a
-rewrite, ask; if a 10-minute refactor fixes it, decide.
+Zero Assumptions governs project-level unknowns (stack, users,
+compliance, architecture). Implementation-level choices follow
+pragmatism in `rules/code-voice.md`.
 
 ---
 
@@ -40,6 +38,15 @@ Brainstorm → Spec → Plan → TDD → Subagent Dev → Review → Finalize
 
 Non-build tasks: Explore → Plan → Code → Commit.
 Never write code before exploring and getting plan approval.
+
+## Output Discipline
+
+Match response length to task complexity. Mechanical tasks: 1-3 lines
+confirming what was done. Analysis tasks: as long as the analysis
+requires, no longer. Skip preambles ("Great question," "Let me think
+through this"). Skip reasoning summaries unless asked. Skip offers to
+continue ("Let me know if you want..."). The user can ask for more
+detail; they can't un-read a wall of text.
 
 ## Verification Protocol
 
@@ -122,29 +129,18 @@ When in doubt: non-trivial.
 ## Phase Boundaries
 
 A phase ends when the last task in the current PLAN.md phase completes
-and its exit criteria are met. Before starting the next phase:
-
-1. **Propose a phase snapshot** using `~/.claude/templates/phase-
-   snapshot.md`. Write to `.claude/snapshots/phase-N.md`. Summary
-   (~10 lines) is read at Tier 1 every session; detail is Tier 2.
-2. **Full REGISTRY.md reconciliation.** Compare component file count
-   against entry count, resolve every entry's path, mark deprecations.
-3. **Prune DECISIONS.md.** Mark superseded entries with
-   `~~[SUPERSEDED]~~` + blockquote warning. Archive if the section
-   exceeds 50 entries.
-4. **Resolve STATUS.md open questions.** Each should be answered
-   (move to DECISIONS.md), deferred to a later phase (tag with phase
-   number), or closed as no longer relevant.
-5. **Update PLAN.md.** Mark current phase complete. Define next
-   phase's exit criteria if not already present.
+and its exit criteria are met. When this happens, load
+`~/.claude/rules/phase-boundaries.md` and run the full procedure:
+propose a phase snapshot, reconcile REGISTRY.md, prune DECISIONS.md,
+resolve STATUS.md open questions, update PLAN.md. Then present the
+forward-looking discussion (recommended first task, open questions,
+observations). Then prompt about compaction.
 
 Don't start next-phase work before the snapshot is written and
 committed. Phase boundaries are the anchor point for session
 reconstruction — skipping a snapshot breaks Tier 1 for every
-subsequent session.
-
-For ship/stable milestones (project going to production), also
-generate `HANDOFF.md` using `~/.claude/templates/handoff.md`.
+subsequent session. At ship/stable milestones, also generate
+`HANDOFF.md` from `templates/handoff.md`.
 
 ---
 
@@ -331,23 +327,20 @@ component detail, snapshot detail.
 
 **When to compact:** proactively between task boundaries when context
 is ~70% full. Never start a complex multi-file task with <30% context
-remaining — compact first. If unsure, err toward compacting.
+remaining — compact first.
 
-**Pre-compaction validation:**
-1. Spot-check 3 REGISTRY.md paths resolve to real files
-2. Component file count vs REGISTRY.md entry count: if files exceed
-   entries by >10%, run full reconciliation before compacting
-3. INVARIANTS.md canary references exist as test files
-4. STATUS.md open questions are self-contained
-5. `git diff` on memory files — restore from git if truncated
+**Phase boundary compaction is a Tier A gate** — Claude recommends
+yes/no with factors (context %, next phase weight, active
+conversational context) and the project lead decides. Defer defaults:
+<65% continue, ≥65% compact.
 
-**Standard compaction:** update STATUS.md, append to `.claude/logs/`.
+**Mid-task compaction:** `.claude/in-progress.md` is the survival
+mechanism. Maintain continuously for refactors touching 5+ files.
 
-**Mid-task compaction.** `.claude/in-progress.md` is the survival
-mechanism for both intentional and unexpected compaction. For any
-refactor touching 5+ files, maintain this file continuously (see
-`state-files-reference.md` for format). Confirm it's current before
-intentional `/compact`. Delete after the task completes.
+Load `~/.claude/rules/compaction.md` before compacting or when
+presenting the phase boundary compaction decision — it has the full
+procedure (decision prompt template, factor definitions, pre-
+compaction validation steps, standard and mid-task handling).
 
 ---
 

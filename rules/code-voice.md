@@ -122,6 +122,17 @@ Elite devs ship. They make deliberate trade-offs and document them.
   is fine. Don't create `interface IUserCardComponentProps` or
   `type TUserCardProps`. Match the team's conventions, not Java's.
 
+### Zero Assumptions vs Pragmatism — precedence
+
+Zero Assumptions (global CLAUDE.md) applies to project-level unknowns:
+stack, users, compliance, architecture. Those require the interview,
+not pragmatism. The pragmatism rules above apply to
+implementation-level choices: utility libraries, variable names,
+helper inlining, naming conventions, whether to abstract.
+
+**Heuristic:** if getting it wrong needs a rewrite, ask. If a
+10-minute refactor fixes it, decide.
+
 ---
 
 ## Error Handling With Judgment
