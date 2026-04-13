@@ -101,7 +101,9 @@ Every completed task goes through verification layers.
 - **UI changes + Playwright available:** axe-core audit + screenshots
   at mobile/desktop. If the project has dark mode, run axe-core in
   BOTH color schemes. Inherited violations: document in STATUS.md,
-  don't block.
+  don't block. If Playwright MCP is unavailable, document the
+  workaround used (e.g., headless shell + axe) in STATUS.md and flag
+  pages that couldn't be audited.
 - Missing files that need changing?
 - Created/deleted/renamed component? Update REGISTRY.md. Modified
   `stable` component? Reset to `verified`.
@@ -342,6 +344,10 @@ conversational context) and the project lead decides. Defer defaults:
 
 **Mid-task compaction:** `.claude/in-progress.md` is the survival
 mechanism. Maintain continuously for refactors touching 5+ files.
+
+**Session logging:** standard compaction always appends to
+`.claude/logs/YYYY-MM-DD.md`. If the directory is empty after
+multiple sessions, logging has silently failed — investigate.
 
 Load `~/.claude/rules/compaction.md` before compacting or when
 presenting the phase boundary compaction decision — it has the full
