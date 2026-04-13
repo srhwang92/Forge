@@ -39,6 +39,9 @@ Brainstorm → Spec → Plan → TDD → Subagent Dev → Review → Finalize
 Non-build tasks: Explore → Plan → Code → Commit.
 Never write code before exploring and getting plan approval.
 
+See `rules/superpowers-workflow.md` for skill invocations per stage
+and the Sonnet implementation dispatch default.
+
 ## Output Discipline
 
 Match response length to task complexity. Mechanical tasks: 1-3 lines
@@ -315,6 +318,9 @@ After compaction or context loss, complete Tier 1 before writing code.
 13. If `.claude/in-progress.md` exists, read it. Check expected
     transient failures before diagnosing failing tests. Don't
     panic-revert without understanding what was in flight.
+14. Resource scan — note available Claude Code skills, MCP servers,
+    and plugins in STATUS.md. Phase planning should factor in what's
+    available before choosing libraries or approaches.
 
 **Tier 2 — On demand:** relevant DECISIONS.md domain, REGISTRY.md
 component detail, snapshot detail.
