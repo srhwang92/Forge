@@ -28,6 +28,34 @@ Railway starter, shadcn template, etc.):
    Under 20 files, treat as greenfield with scaffolding.
 6. Proceed with the numbered setup steps below.
 
+## Interview Check
+
+**Setup cannot begin until the Forge interview has been completed.**
+
+If the project lead used Superpowers brainstorming, a freeform
+planning conversation, or any other discovery method *instead of*
+the interview, that does not substitute. Run `templates/interview.md`
+now before continuing.
+
+Superpowers-produced artifacts (brainstorm notes, design specs,
+plans) are valuable input to the interview and subsequent setup —
+use them to pre-fill answers where they clearly apply, and ask the
+project lead to confirm. But they do not cover Forge's required
+questions in the structured form needed for ceremony derivation
+and guardrail selection. Specifically:
+
+- **Q3 (data sensitivity)** — determines privacy jurisdiction and
+  regulated-industry guardrails. Superpowers brainstorming does not
+  ask this.
+- **Q4 (AI features)** — triggers `ai-features.md` guardrail
+  loading. Superpowers brainstorming does not ask this.
+- **Q7 (design assets)** — determines DESIGN.md creation path
+  (Figma-first, ui-ux-pro-max, or template + `[VERIFY]`).
+  Superpowers brainstorming does not ask this in the form needed.
+
+If the interview was already run, confirm its answers are captured
+before proceeding to step 1.
+
 ## Setup Steps
 
 1. **Project CLAUDE.md** from template. **Derive ceremony level** by
@@ -57,9 +85,27 @@ Railway starter, shadcn template, etc.):
    questions about ambiguities or decisions with multiple valid
    approaches]." Present the spec, the validation findings, and the
    questions together for approval. Answers go into DECISIONS.md.
-4. **DESIGN.md** — if UI exists. Create from `templates/design.md`.
-   Figma-first; otherwise template + `[VERIFY]` markers. Present for
-   review before UI work. See `rules/design-workflow.md` for details.
+4. **DESIGN.md** — unless the project has no user-facing UI at all
+   (pure backend service, CLI tool, or automation script), create
+   DESIGN.md now. "We'll do it later when we build UI" is the
+   failure mode this step exists to prevent. Selection logic:
+
+   - **Figma file provided (Q7)** → extract tokens via Figma MCP.
+   - **No Figma, `ui-ux-pro-max` installed** → invoke
+     `ui-ux-pro-max --design-system --persist` with the Q7 design
+     direction (brand words, color preferences, typography). Adapt
+     its output into DESIGN.md format.
+   - **Neither Figma nor ui-ux-pro-max** → generate from
+     `templates/design.md` with `[VERIFY]` markers on auto-populated
+     values.
+
+   Then proactively suggest `/ux-copy` to define the Copy Voice
+   section of DESIGN.md (tone, person, tense, error/empty-state
+   patterns). Skippable at project lead's discretion.
+
+   Present DESIGN.md for review before any UI work begins. Do not
+   resume UI work until markers are cleared. See
+   `rules/design-workflow.md` for enforcement details.
 5. **STATUS.md + PLAN.md** — from `templates/status.md` and
    `templates/plan.md`.
 6. **REGISTRY.md** — from `templates/registry.md`. Start empty,

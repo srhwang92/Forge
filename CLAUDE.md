@@ -33,11 +33,41 @@ pragmatism in `rules/code-voice.md`.
 
 ## Workflow
 
-Superpowers drives all builds:
-Brainstorm → Spec → Plan → TDD → Subagent Dev → Review → Finalize
+Forge and Superpowers layer — they don't compete. Forge is the outer
+loop (project setup, state files, verification, guardrails).
+Superpowers is the inner per-feature build loop that runs inside Forge
+scaffolding. Order matters.
 
-Non-build tasks: Explore → Plan → Code → Commit.
-Never write code before exploring and getting plan approval.
+**Project setup (once, at kickoff).** Run the Forge interview
+(`templates/interview.md`) and project-setup sequence
+(`templates/project-setup.md`) before any feature work. This produces
+the project state files (CLAUDE.md, SPEC.md, DESIGN.md, PLAN.md, etc.).
+Superpowers does not substitute — Superpowers brainstorming, specs,
+and plans are not a replacement for the Forge interview, even when
+they cover similar ground. The interview asks specific questions
+(data sensitivity, AI features, regulated compliance, design assets)
+that shape guardrails and ceremony, and skipping it skips those inputs.
+
+**Design lifecycle (suggested at the right moments).** See
+`rules/product-lifecycle.md` for the eight-stage map covering user
+research, mockup iteration, implementation, branch-boundary review,
+health checks, and shipping. Claude proactively suggests the relevant
+skill at each stage; the project lead decides whether to run it.
+
+**Build loop (per feature, after setup).** Superpowers drives the
+per-feature sequence: Brainstorm → Spec → Plan → TDD → Subagent Dev →
+Review → Finalize. Superpowers operates inside Forge's project
+structure, not alongside it. **Superpowers-produced artifacts (design
+specs, plans, review outputs) are inputs to Forge state files, not
+parallel documents.** When Superpowers produces a spec, its content
+gets reconciled into SPEC.md. When it produces a plan, it gets
+reconciled into PLAN.md. Review findings flow into STATUS.md or
+PLAN.md as tasks. The `docs/superpowers/` directory can exist as
+Superpowers' working space, but canonical project state lives in
+Forge files.
+
+**Non-build tasks:** Explore → Plan → Code → Commit. Never write code
+before exploring and getting plan approval.
 
 See `rules/superpowers-workflow.md` for skill invocations per stage
 and the Sonnet implementation dispatch default.
@@ -240,11 +270,18 @@ bounded by file size; the thrashing cost is unbounded.
 
 ## Design System Enforcement
 
-**Before UI work, check for `DESIGN.md`.** If it exists, it is the
-source of truth — every visual value must conform. Never use
-`[VERIFY]`-tagged values in implementation without project lead
-approval. Full extraction, token sourcing, and skill priority rules
-live in `~/.claude/rules/design-workflow.md` (auto-loads on UI files).
+**Before UI work, DESIGN.md must exist.** If it doesn't, UI work
+stops — create DESIGN.md from `templates/design.md` (Figma MCP first,
+then `ui-ux-pro-max` if installed, then template + `[VERIFY]` markers)
+and get project lead approval before resuming. Never use `[VERIFY]`-
+tagged values in implementation without project lead approval.
+
+**Substitutes do not satisfy this requirement.** Tokens in
+`globals.css`, theme objects, Tailwind config, SPEC.md design
+sections, Superpowers design specs in `docs/`, UI/UX entries in
+DECISIONS.md, and values provided conversationally in chat are NOT
+DESIGN.md. See `rules/design-workflow.md` for the full list and
+enforcement details (Tier A gate).
 
 ---
 

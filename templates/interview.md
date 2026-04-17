@@ -15,6 +15,14 @@ project lead can answer in a single pass.
   specific customer segments?)
 - Is this a prototype, MVP, or production system?
 
+> **After Q1 answers:** evaluate whether user research would add
+> value (see `rules/product-lifecycle.md` Stage 1). If signals are
+> present — external consumer users, users the project lead doesn't
+> know well, meaningful UX stakes, no prior research cited —
+> proactively suggest `/user-research` or `/research-synthesis`
+> before continuing to Q2. Opt-in. Skip for internal tools, personal
+> projects, and cases where users are well-understood.
+
 **2. Stack & Infrastructure**
 - Preferred frontend, backend, database, hosting?
 - Are you starting from a template, starter, or boilerplate?

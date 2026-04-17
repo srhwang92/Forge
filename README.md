@@ -58,9 +58,10 @@ development and cannot be fixed by instruction files alone.
 
 - `CLAUDE.md` — workflow, verification protocol, compaction rules
 - `GUARDRAILS.md` — always-active security rules
-- `rules/` (8 files) — auto-loaded on matching file patterns: code
+- `rules/` (9 files) — auto-loaded on matching file patterns: code
   voice, vibe-coding discipline, frontend/backend standards, git
-  conventions, Context7 usage, state files reference, design workflow
+  conventions, Context7 usage, state files reference, design workflow,
+  product lifecycle
 - `templates/` (12 files) — blanks for per-project files: interview,
   project setup, spec, design, registry, decisions, invariants,
   status, plan, phase snapshot, handoff, project CLAUDE.md
@@ -288,11 +289,22 @@ Install what fits your workflow.
 
 | Skill | Used for | Status | Fallback without it |
 |-------|----------|--------|---------------------|
-| **Superpowers** | Automated build workflow (Brainstorm → Spec → Plan → TDD → Dev → Review) | Recommended | Use the manual workflow: Explore → Plan → Code → Commit |
-| **ui-ux-pro-max** | Design system generation when no Figma file exists | Optional | Manually create DESIGN.md from brand guidelines |
+| **Superpowers** | Per-feature build workflow (Brainstorm → Spec → Plan → TDD → Dev → Review) inside Forge scaffolding | Recommended | Use the manual workflow: Explore → Plan → Code → Commit |
+| **Anthropic Design plugin** | Product lifecycle stages Superpowers doesn't cover — see rows below for each skill | Recommended for UI projects | Skip stages or do them manually; document what was skipped in DECISIONS.md |
+| `/user-research` | Plan research when users are poorly understood and no data exists (Lifecycle Stage 1) | Optional | Skip discovery; answer Q1 from intuition |
+| `/research-synthesis` | Turn existing raw user data (tickets, interviews, surveys) into insights (Lifecycle Stage 1) | Optional | Summarize manually, or skip |
+| `/ux-copy` | Define Copy Voice at setup + per-string copy during implementation (Lifecycle Stages 3 + 5) | Optional | Inconsistent copy across components — the documented failure mode |
+| `/design-critique` | Structured feedback on mockups (Stage 4) and branch-boundary UI review (Stage 6) | Optional | Self-review; miss hierarchy/consistency issues |
+| `/accessibility-review` | WCAG 2.1 AA review of mockups (Stage 4) and branches (Stage 6) | Optional | Rely on axe-core alone (catches ~30–40% of issues) |
+| `/design-system` | Design-system audit at branch boundaries (Stage 6) + monthly health checks (Stage 7) | Optional | Manual token grep; tolerate drift |
+| `/design-handoff` | Design-spec supplement at ship milestone (Stage 8) | Optional | HANDOFF.md alone; design spec lives in DESIGN.md |
+| **ui-ux-pro-max** | Design system generation at project setup when no Figma exists (Lifecycle Stage 3) | Recommended for UI projects without Figma | Manual DESIGN.md from `templates/design.md` + `[VERIFY]` markers |
 | **frontend-design** | Creative direction, anti-generic-AI-aesthetic during implementation | Optional | Follow DESIGN.md tokens manually |
-| **Codex adversarial review** | Optional cross-model design challenge at branch boundaries (`/codex:adversarial-review`) | Optional | Dispatch a subagent with the diff |
+| **Codex adversarial review** | Cross-model design challenge at branch boundaries (`/codex:adversarial-review`) | Optional | Dispatch a subagent with the diff |
 | **feature-dev** | Alternative lightweight workflow to Superpowers | Optional | Use Superpowers or manual workflow |
+
+See `rules/product-lifecycle.md` for when each Anthropic Design
+plugin skill is proactively suggested during a project.
 
 ### Vercel Agent Skills
 

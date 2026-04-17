@@ -37,6 +37,54 @@ Shopify theme.css custom properties | RN `theme.ts` export]
 
 ---
 
+## Copy Voice
+
+> Defined once during project setup (proactively suggested via
+> `/ux-copy`). Referenced by every implementing subagent when writing
+> user-facing strings — buttons, errors, empty states, toasts,
+> dialogs, onboarding. Defining voice once prevents the inconsistent-
+> copy failure where every subagent invents its own.
+
+**Tone:** `[VERIFY]` [e.g., warm + professional; playful + direct;
+clinical + authoritative]
+
+**Person:** `[VERIFY]` [first / second / third — e.g., "we'll send
+you an email" vs. "you'll receive an email" vs. "the system sends
+an email"]
+
+**Tense:** `[VERIFY]` [present / future — e.g., "Saving..." vs.
+"Will save"]
+
+**Sentence length:** `[VERIFY]` [short + punchy | full sentences |
+context-dependent]
+
+**Error message pattern:** `[VERIFY]` [e.g., "What went wrong +
+what to do next, no blame" | "Plain statement of the problem" |
+"Apology + resolution step"]
+
+Example: *"We couldn't save your changes. Check your connection
+and try again."* (not: *"Error: Network failure."*)
+
+**Empty-state pattern:** `[VERIFY]` [e.g., "Explain what goes here
++ one CTA" | "Playful placeholder + setup link" | "Minimal —
+heading + action button"]
+
+Example: *"No tasks yet. Add your first one to get started."*
+
+**Onboarding tone:** `[VERIFY]` [e.g., "Assume competence, skip
+explanations" | "Walk through every step" | "Progressive — show
+basics, surface advanced features contextually"]
+
+**Forbidden words/patterns:** `[VERIFY]` [e.g., no "simply" or
+"just"; no "oops"; no exclamation marks in errors; avoid "please"
+in UI chrome]
+
+**Brand-specific terminology:** `[VERIFY]` [project-specific terms
+that must be used consistently — e.g., "Dump" not "Brainstorm",
+"Flow" not "Session"]
+
+---
+
 ## Color Palette
 
 ### Primitives (Tier 1 — never use directly in components)
