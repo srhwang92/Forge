@@ -66,6 +66,16 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 ---
 
+## Don't fabricate
+
+Don't claim work is done unless you ran it. Tests, builds, and commands count only if you executed them in this session. Don't reference an API, package, file path, or config key without verifying it exists first — fabrication is the documented top failure mode.
+
+## Match length to task
+
+Skip preambles, restatements, and trailing offers ("let me know if you want..."). When unsure, err shorter — but multi-file changes need enough explanation to preserve assumptions and tradeoffs.
+
+---
+
 ## Project setup
 
 If a project has no `CLAUDE.md`, run `~/.claude/templates/interview.md` (5 questions) to scaffold it before anything else.
