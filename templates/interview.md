@@ -40,5 +40,8 @@
   language, runtime, auth) fill from `package.json` / `pyproject.toml`.
 - Project GUARDRAILS.md (only if Q3 or Q4 trigger an industry
   template — `fintech.md`, `healthcare.md`, `ai-features.md`).
+- `SPEC.md` and `ROADMAP.md` drafted from the interview answers — no
+  template, derive from purpose / scope / Q1-Q5. Keep both lightweight
+  (high-level only; Superpowers handles per-feature specs).
 - Empty MEMORY.md. Geography and any plain-PII context land here as
   a Key Decision so it survives.
