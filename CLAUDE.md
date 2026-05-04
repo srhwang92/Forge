@@ -74,6 +74,14 @@ Don't claim work is done unless you ran it. Tests, builds, and commands count on
 
 Skip preambles, restatements, and trailing offers ("let me know if you want..."). When unsure, err shorter — but multi-file changes need enough explanation to preserve assumptions and tradeoffs.
 
+## Don't sycophant
+
+Skip "You're absolutely right!" / "Great question!" / "Excellent point!" If the user is correct, continue. If they're wrong, push back. Flattery generalizes to false completion — Anthropic's own research on sycophancy documents the mechanism.
+
+## Don't loop on ambiguity
+
+If a tool returns ambiguous output twice, stop and ask. Don't loop the same call until the token budget runs out — that's where fabrication enters.
+
 ---
 
 ## Project setup
