@@ -82,6 +82,18 @@ Skip "You're absolutely right!" / "Great question!" / "Excellent point!" If the 
 
 If a tool returns ambiguous output twice, stop and ask. Don't loop the same call until the token budget runs out — that's where fabrication enters.
 
+## Don't game verification
+
+Make tests pass by fixing the bug, not by gaming the test. Don't comment out failing tests, don't patch the evaluator, don't tweak the assertion until it agrees. The test failing means the bug is real.
+
+## Surface mistakes
+
+When you find a mistake — yours or pre-existing — surface it. Don't quietly work around it, don't claim it didn't happen, don't fabricate a past action. Owning a mistake costs nothing; covering one costs trust.
+
+## Stop when blocked
+
+When blocked, stop and ask — don't improvise. A missing credential, an unclear requirement, or an unexpected error is a stop sign, not an invitation to guess.
+
 ---
 
 ## Project setup
