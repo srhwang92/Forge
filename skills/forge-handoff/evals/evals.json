@@ -1,0 +1,26 @@
+{
+  "skill_name": "forge-handoff",
+  "evals": [
+    {
+      "id": 1,
+      "name": "ship-milestone-v2-project",
+      "prompt": "We're shipping next week. Generate the handoff doc for the team taking over.",
+      "expected_output": "Skill reads project CLAUDE.md, MEMORY.md, PHASE.md, recent logs, package.json, GUARDRAILS.md, and tests/canaries/. Asks the project lead 4-5 scoping questions (production URL, successor team, secret rotation cadence, load-bearing values, fragile areas). Generates HANDOFF.md at project root with all 8 sections (Architecture, Reading Order, Local Dev Setup, Product Context, Maintenance, What NOT to Change, Forge Framework Notes, Known Rough Edges) populated from files + answers. Presents for review before committing.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "mid-phase-warning",
+      "prompt": "/forge:handoff",
+      "expected_output": "PHASE.md shows unfinished tasks. Skill detects mid-phase state and warns the user: recommend running after the current phase completes, since 'What Was Just Completed' won't reflect reality otherwise. Skill asks whether to wait or proceed anyway.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "name": "ai-features-handoff",
+      "prompt": "Generate the handoff document — we're handing this off to the client's internal team next month.",
+      "expected_output": "Project has AI features (ai-features.md applied, MEMORY.md has pinned model versions). HANDOFF.md 'What NOT to Change Without Reading First' section explicitly lists pinned model versions, embedding model + version, RAG chunking parameters, system prompts, and rate limits — pulling from both 'Things Claude Gets Wrong' and the AI-specific entries in MEMORY.md Key Decisions. Maintenance section flags BAA review schedule if applicable.",
+      "files": []
+    }
+  ]
+}
