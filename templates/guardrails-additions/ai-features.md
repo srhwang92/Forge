@@ -22,7 +22,7 @@ Additive when project setup surfaces AI features (chat, RAG, embeddings, agents,
   assert zero results. Include control assertion that User A CAN
   retrieve own (catches broken pipelines that vacuously "pass").
 - Document deletion cascades to embeddings.
-- Pin embedding model + version in MEMORY.md. Model change invalidates
+- Pin embedding model + version in CONTEXT.md. Model change invalidates
   all embeddings.
 
 ## Chat Architecture

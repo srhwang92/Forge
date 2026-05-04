@@ -1,6 +1,6 @@
-# Memory — [PROJECT NAME]
+# Context — [PROJECT NAME]
 
-> Project's persistent memory. Read after compaction. Updated when
+> Project's persistent context. Read after compaction. Updated when
 > non-trivial decisions are made or current state changes.
 
 ## Architecture

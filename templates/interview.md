@@ -43,5 +43,5 @@
 - `SPEC.md` and `ROADMAP.md` drafted from the interview answers — no
   template, derive from purpose / scope / Q1-Q5. Keep both lightweight
   (high-level only; Superpowers handles per-feature specs).
-- Empty MEMORY.md. Geography and any plain-PII context land here as
-  a Key Decision so it survives.
+- Empty CONTEXT.md (from `templates/context.md`). Geography and any
+  plain-PII context land here as a Key Decision so it survives.

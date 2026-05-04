@@ -4,6 +4,8 @@
 
 **Production:** [yes | no | personal]
 
+See @README.md for project overview and @package.json for available commands (or @pyproject.toml / @Cargo.toml / equivalent for non-JS stacks).
+
 ## Stack
 
 - Framework:
@@ -27,18 +29,19 @@ typecheck:
 
 ## Working in this codebase
 
-Use these rails. Don't bypass them silently — skipping the build loop, skipping a Context7 lookup, or skipping code review on non-trivial work means you're working against the framework, not with it.
+**IMPORTANT:** Use these rails. Don't bypass them silently — skipping the build loop, skipping a Context7 lookup, or skipping code review on non-trivial work means you're working against the framework, not with it.
 
 - Use Superpowers for feature work: brainstorming → writing-plans → executing-plans (or subagent-driven-development). Don't write code before the design and plan are approved.
 - Query Context7 before referencing a library API, function signature, or platform behavior. Training data is outdated even for libraries you "know."
 - Non-trivial changes get reviewed before commit. Pick a mechanism (Superpowers' `requesting-code-review`, `codex:rescue`, or a fresh subagent with adversarial framing). Don't self-review with the same framing you wrote the code with.
 - Suggest the matching Anthropic design skill when the task fits: `/design-critique` (review mockup or design), `/accessibility-review` (WCAG audit), `/ux-copy` (microcopy, errors, empty states, CTAs), `/design-system` (audit or extend the system), `/design-handoff` (design → dev spec), `/user-research` (plan research), `/research-synthesis` (synthesize existing research).
+- For area-specific rules, use `.claude/rules/*.md` with YAML frontmatter `paths:` to scope. Loaded on demand when Claude touches matching files — keeps this file short.
 
 ## Project memory
 
 - `SPEC.md` — what the project is, scope, in/out, constraints. Drafted at kickoff. Updated when scope shifts.
 - `ROADMAP.md` — phases until ship. Drafted at kickoff. `PHASE.md` pulls the next phase from it.
-- `MEMORY.md` — architecture sketch, key decisions, current state, open questions. Update when a non-trivial decision is made.
+- `CONTEXT.md` — architecture sketch, key decisions, current state, open questions. Update when a non-trivial decision is made.
 - `PHASE.md` — current phase goal + tasks + done-when. Replaced when the phase ends.
 - `.claude/logs/YYYY-MM-DD.md` — append-only session log.
 - "Things Claude Gets Wrong" in this file — add when project-specific mistakes surface.
@@ -47,13 +50,13 @@ When an assumption must hold across phases (RLS, no-float-money, IDOR ownership)
 
 ## After compaction
 
-Read this `CLAUDE.md` → `MEMORY.md` → `PHASE.md` → latest `.claude/logs/*.md` → `GUARDRAILS.md` (if exists). Don't reconstruct state from memory.
+Read this `CLAUDE.md` → `CONTEXT.md` → `PHASE.md` → latest `.claude/logs/*.md` → `GUARDRAILS.md` (if exists). Don't reconstruct state from memory.
 
 If you haven't read a referenced file/symbol in the last ~10 turns, re-read it.
 
 ## Phase boundaries
 
-When `PHASE.md`'s done-when is met: append a log entry, compress what's worth keeping into `MEMORY.md`, prune what hasn't paid off (entries not cited recently, decisions superseded, stale open questions). AI accretes; pruning is the under-used operation.
+When `PHASE.md`'s done-when is met: append a log entry, compress what's worth keeping into `CONTEXT.md`, prune what hasn't paid off (entries not cited recently, decisions superseded, stale open questions). AI accretes; pruning is the under-used operation.
 
 ## Pushback
 
@@ -61,4 +64,4 @@ Push back when the project lead is about to make an expensive mistake — name t
 
 ## Things Claude Gets Wrong
 
-> Empty at start. Add when project-specific mistakes surface. Prune at phase boundaries.
+> When Claude makes a project-specific mistake, add the lesson here so future sessions avoid it. End every fix with: *"Update CLAUDE.md so this doesn't happen again."* Pruned at phase boundaries.

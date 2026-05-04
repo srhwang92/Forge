@@ -15,7 +15,7 @@ v2/
 ├── templates/
 │   ├── interview.md                   # 5 kickoff questions
 │   ├── project-claude.md              # Project CLAUDE.md template
-│   ├── memory.md                      # MEMORY.md template
+│   ├── context.md                     # CONTEXT.md template
 │   ├── phase.md                       # PHASE.md template
 │   ├── canary-header.md               # Canary test header convention
 │   └── guardrails-additions/
@@ -47,7 +47,7 @@ had and what v2 disposes of) and proposes the changes for approval.
 
 ## Generating HANDOFF.md at ship
 
-The `forge-handoff` skill generates HANDOFF.md from `MEMORY.md` +
+The `forge-handoff` skill generates HANDOFF.md from `CONTEXT.md` +
 project `CLAUDE.md` at ship/stable milestones. Invoke when shipping.
 
 ## Design philosophy

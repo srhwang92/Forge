@@ -10,12 +10,12 @@ this list and remove what's deprecated.
 |---|---|
 | `REGISTRY.md` | Delete. Source code is the registry. |
 | `INVARIANTS.md` | Delete. Canary header comments document what they guard. |
-| `DECISIONS.md` | Delete. Compress key decisions into `MEMORY.md`. |
-| `STATUS.md` | Delete. Current state goes in `MEMORY.md`; tasks in `PHASE.md`. |
+| `DECISIONS.md` | Delete. Compress key decisions into `CONTEXT.md`. |
+| `STATUS.md` | Delete. Current state goes in `CONTEXT.md`; tasks in `PHASE.md`. |
 | `PLAN.md` | Delete. Active phase goes in `PHASE.md`; archive prior phases. |
 | `SPEC.md` | Leave in place. v2 makes spec opt-in but doesn't remove it if present. |
 | `DESIGN.md` | Leave in place. Anthropic's design skills produce their own outputs in `design/` if needed. |
-| `HANDOFF.md` | Leave in place. `forge-handoff` regenerates from `MEMORY.md` at ship. |
+| `HANDOFF.md` | Leave in place. `forge-handoff` regenerates from `CONTEXT.md` at ship. |
 | `.claude/snapshots/*.md` | Archive to `.claude/archive/snapshots/`. The phase-end log entry replaces snapshots going forward. |
 | `tests/canaries/` | Keep. Update each canary's header comment to the v2 format (see `templates/canary-header.md`). |
 
@@ -23,7 +23,7 @@ this list and remove what's deprecated.
 
 | File | Purpose |
 |---|---|
-| `MEMORY.md` | Architecture sketch, key decisions, current state, open questions. |
+| `CONTEXT.md` | Architecture sketch, key decisions, current state, open questions. |
 | `PHASE.md` | Current phase goal + tasks + done-when. Replaced when the phase ends. |
 
 ## Sections to strip from project `CLAUDE.md`

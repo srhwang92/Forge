@@ -136,7 +136,7 @@ extend to the next.
 - **Level 1 — Ask and propose.** Present options with a recommendation.
 - **Level 2 — Ask and wait.** For Approval Gate items above. Wait for
   explicit approval.
-- **Level 3 — Alert immediately.** Stop work, document in MEMORY.md,
+- **Level 3 — Alert immediately.** Stop work, document in CONTEXT.md,
   present recovery steps. Triggers: test regression, data corruption,
   deploy break, security vulnerability discovered, secret compromise,
   exposed user data.
